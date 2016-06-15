@@ -48,6 +48,9 @@ std::cout<<std::setprecision(10);
 
 }
 
+static testbed::Registrar<test_entity_sample> registrar("sample");
+//This string can be anything, but for sanity, make it the additional part of the test entity
+
 int main(int argc, char ** argv){
 
   int ierr, rank, n_procs;
@@ -61,7 +64,7 @@ int main(int argc, char ** argv){
   mpi_info_struc mpi_info;
   mpi_info.rank = rank;
   mpi_info.n_procs = n_procs;
-
+/*
   testbed::tests * mytestbed = new testbed::tests();
   testbed::set_mpi(mpi_info);
   testbed::set_filename("testing.log");
@@ -71,6 +74,17 @@ int main(int argc, char ** argv){
   mytestbed->run_tests();
   
   delete mytestbed;
+*/
+
+  testbed::tests * mytestbed = new testbed::tests();
+  testbed::set_mpi(mpi_info);
+  testbed::set_filename("testing.log");
+  mytestbed->setup_tests();
+  mytestbed->add("sample");
+
+  mytestbed->run_tests();
+//  auto eg = testbed::test_factory::instance()->create("sample");
+//  std::cout<<eg->name<<'\n';
 
 }
 

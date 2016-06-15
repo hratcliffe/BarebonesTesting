@@ -16,6 +16,8 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <memory>
+#include <map>
 
 #define calc_type double
 
@@ -163,8 +165,9 @@ namespace testbed{
   class tests;
   class test_entity{
   private:
-    tests * parent;
   public:
+
+    tests * parent;
     std::string name;/**< The name of the test, which will be reported in the log file*/
     test_entity(){parent = nullptr; name = "";}
     virtual ~test_entity(){;}
@@ -174,7 +177,49 @@ namespace testbed{
 
   };
 
+  /* The factory implmentation is adapted from http://www.codeproject.com/Articles/567242/AplusC-b-bplusObjectplusFactory*/
+  class test_factory{
+  private:
+    std::map<std::string, std::function<test_entity*(void)> > factoryFunctionRegistry;
+  public:
+    static std::shared_ptr<test_entity> CreateInstance(std::string name);
+//    static test_entity * CreateInstance(std::string name);
 
+    void registerFactoryFunction(std::string name, std::function<test_entity*(void)> classFactoryFunction){ factoryFunctionRegistry[name] = classFactoryFunction;}
+    static test_factory * instance();
+    std::shared_ptr<test_entity> create(std::string name);
+
+  };
+  test_factory * test_factory::instance(){
+    static test_factory factory;
+    return &factory;
+  }
+
+  std::shared_ptr<test_entity> test_factory::create(std::string name){
+      test_entity * instance = nullptr;
+
+      // find name in the registry and call factory method.
+      auto it = this->factoryFunctionRegistry.find(name);
+      if(it != this->factoryFunctionRegistry.end())
+          instance = it->second();
+
+      // wrap instance in a shared ptr and return
+      if(instance != nullptr)
+          return std::shared_ptr<test_entity>(instance);
+      else
+          return nullptr;
+  }
+  
+  template<class T>
+  class Registrar {
+  public:
+      Registrar(std::string name)
+      {
+          // register the class factory function 
+          test_factory::instance()->registerFactoryFunction(name,
+                  [](void) -> test_entity * { return new T();});
+      }
+  };
 
   /**\brief Test controller
   *
@@ -209,7 +254,7 @@ namespace testbed{
 
     std::fstream * outfile; /**< Output file handle*/
     int current_test_id;/**< Number in list of test being run*/
-    std::vector<test_entity*> test_list;/**< List of tests to run*/
+    std::vector<std::shared_ptr<test_entity> > test_list;/**< List of tests to run*/
     int verbosity;/**< Verbosity level of output*/
   public:
 
@@ -261,12 +306,18 @@ namespace testbed{
     We can make a copy. Has to be a deep copy. And each derived class must implement this too.... urk
     We could use std::shared_ptr because we can happily modify the object just not delete it. We don't care if there are copy or moves etc etc
     */
-    void add_test(test_entity * test){
+/*    void add_test(test_entity * test){
       
       test->parent = this;
       test_list.push_back(test);
       
-    };
+    };*/
+
+    void add(std::string name){
+      std::shared_ptr<test_entity> eg = testbed::test_factory::instance()->create(name);
+      eg->parent = this;
+      test_list.push_back(eg);
+    }
 
     /** Delete test objects */
     void cleanup_tests(){
@@ -278,7 +329,7 @@ namespace testbed{
       }
       delete outfile;
       for(current_test_id=0; current_test_id< (int)test_list.size(); current_test_id++){
-        delete test_list[current_test_id];
+//        delete test_list[current_test_id];
       }
     };
 
