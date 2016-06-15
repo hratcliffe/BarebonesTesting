@@ -1,0 +1,6 @@
+
+Set colour check for terminal has color etc
+
+Proper move/copy constructors
+
+use unique pointer for test entities??
