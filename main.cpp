@@ -56,10 +56,11 @@ class test_entity_second : public testbed::test_entity{
   }
   virtual ~test_entity_second(){;};
   virtual int run();
-  void setup(int a){std::cout<<a<<'\n';}
+ // void setup_member(int a, int b){std::cout<<a+b<<'\n';number=a+b;}
   int number;
 //  void setup_member(int a){std::cout<<a<<'\n';std::cout<<this->name<<'\n';this->name="fish";std::cout<<this->name<<'\n';number=a;}
-  void setup_member(int a){std::cout<<a<<'\n';std::cout<<this->name<<'\n';number=a;}
+  void setup(int a, std::string b){number=a;}
+  //{std::cout<<a<<" "<<b<<'\n';std::cout<<this->name<<'\n';number=a;}
 
 };
 int test_entity_second::run(){
@@ -91,28 +92,45 @@ int main(int argc, char ** argv){
   testbed::set_filename("testing.log");
   mytestbed->setup_tests();
 
-  //mytestbed->add("second");
-
-  //std::function<void(void)> myfun = std::bind(setup_second, 1);
-//  std::function<void(test_entity_second *)> myfun = std::bind(setup_second, std::placeholders::_1, 1);
-//  std::function<void(test_entity_second *)> myfun = std::bind(&test_entity_second::setup_member, std::placeholders::_1, 1);
-
   mytestbed->add("sample");
 
-  std::function<void(test_entity_second *)> myfun = std::bind(&test_entity_second::setup_member, std::placeholders::_1, 1);
-//  auto myfun = std::bind(&test_entity_second::setup_member, std::placeholders::_1, 1);
+  ADDABLE_FN_TYPE(second) myfun = ADDABLE_FN(second::setup, 1, "hi");
+
+//  void (test_entity_second::*tmpfn)(int) = &test_entity_second::setup_member;
+//Create tmpfn with correct signature
+//  myfun = std::bind(tmpfn, std::placeholders::_1, 1);
+
+  //RESOLVED_FN_TYPE(second, tmpfn)(int);
+//  myfun = [&test_entity_second::setup_member](test_entity_second *){ return 
+//  auto aBind = [&a](int i, int j){ return a(i, j); };
   mytestbed->add("second", myfun);
-  myfun = std::bind(&test_entity_second::setup_member, std::placeholders::_1, 2);
+  mytestbed->add("second", (ADDABLE_FN_TYPE(second)) ADDABLE_FN(second::setup, 2, ""));
+  //myfun = std::bind(&test_entity_second::setup_member, std::placeholders::_1, 2, 3);
+//  myfun = ADDABLE_FN(2,3);
+  myfun = ADDABLE_FN(second::setup, 5, "bum");
   mytestbed->add("second", myfun);
 
   mytestbed->print_available();
 
   mytestbed->run_tests();
 
+  
   delete mytestbed;
   MPI_Finalize();
 
 }
+/** Adding tests to the remit
+*
+*For a test where all necessary setup can be done in the constructor, simply call mytestbed->add("name"); where name is the name the class is registered under. 
+*For a simple setup function, with any number of parameters but no overloads, we bind together the setup function arguments to the values required, and pass that as second argument to add(). Using supplied macros: 
+ADDABLE_FN_TYPE(second) myfun = ADDABLE_FN(name::functionname, 1, "hello"); etc
+and then mytestbed->add("name", myfun)
+Before the test is run, the setup function will be invoked with the arguments given. Multiple calls to add with different arguments may be made, each adding a new test object
+For overloaded setup functions, there is an additional step. std::bind, which underlies the ADDABLE_FN macro, has to be told which overload is required. 
+So we first do void (test_entity_second::*tmpfn)(int) = &test_entity_second::setup_member;
+to create tmpfn with the correct signature, and then bind to the parameters of tmpfn like this myfun = std::bind(tmpfn, std::placeholders::_1, 1); Finally we call add("name", myfun) as before. 
+
+*/
 
 std::vector<double> cubic_solve(calc_type an, calc_type bn, calc_type cn){
 /** \brief Finds roots of cubic x^3 + an x^2 + bn x + cn = 0

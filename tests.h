@@ -22,6 +22,14 @@
 #define calc_type double
 
 #define REGISTER(x) static testbed::Registrar<test_entity_ ## x> registrar_ ## x( # x)
+#define ADDABLE_FN_TYPE(x) std::function<void(test_entity_ ## x *)>
+#define ADDABLE_FN(x, ...) std::bind(&test_entity_ ##x, std::placeholders::_1, __VA_ARGS__)
+//#define RESOLVED_FN_TYPE(x, y) void (test_entity_ ## x::* ##y)
+// = &test_entity_ ## x ::setup_member;
+
+//void (test_entity_second::*tmpfn)(int) = &test_entity_second::setup_member;
+//Create tmpfn with correct signature
+//  myfun = std::bind(tmpfn, std::placeholders::_1, 1);
 //static testbed::Registrar<test_entity_sample> registrar("sample");
 //This string can be anything, but for sanity, make it the additional part of the test entity
 //static testbed::Registrar<test_entity_sample> registrar_sample;
