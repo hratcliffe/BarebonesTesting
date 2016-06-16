@@ -57,17 +57,20 @@ class test_entity_second : public testbed::test_entity{
   virtual ~test_entity_second(){;};
   virtual int run();
   void setup(int a){std::cout<<a<<'\n';}
-  void setup_member(int a){std::cout<<a<<'\n';std::cout<<this->name<<'\n';this->name="fish";std::cout<<this->name<<'\n';}
+  int number;
+//  void setup_member(int a){std::cout<<a<<'\n';std::cout<<this->name<<'\n';this->name="fish";std::cout<<this->name<<'\n';number=a;}
+  void setup_member(int a){std::cout<<a<<'\n';std::cout<<this->name<<'\n';number=a;}
+
 };
 int test_entity_second::run(){
-
+  report_info(testbed::mk_str(number));
   report_err(0);
   return 0;
 }
 REGISTER(second);
 
 //void setup_second(test_entity_second * inst, int a){std::cout<<a<<'\n';std::cout<<inst->name<<'\n';}
-void setup_second(test_entity_second * inst, int a){std::cout<<a<<'\n';std::cout<<inst->name<<'\n';inst->name="fish";std::cout<<inst->name<<'\n';}
+//void setup_second(test_entity_second * inst, int a){std::cout<<a<<'\n';std::cout<<inst->name<<'\n';inst->name="fish";std::cout<<inst->name<<'\n';}
 
 int main(int argc, char ** argv){
 
@@ -88,17 +91,19 @@ int main(int argc, char ** argv){
   testbed::set_filename("testing.log");
   mytestbed->setup_tests();
 
-  mytestbed->add("sample");
-  mytestbed->add("second");
+  //mytestbed->add("second");
 
   //std::function<void(void)> myfun = std::bind(setup_second, 1);
 //  std::function<void(test_entity_second *)> myfun = std::bind(setup_second, std::placeholders::_1, 1);
-  std::function<void(test_entity_second *)> myfun = std::bind(&test_entity_second::setup_member, std::placeholders::_1, 1);
-  
-  mytestbed->configure_test("second", myfun);
-  mytestbed->configure_test("second", myfun);
+//  std::function<void(test_entity_second *)> myfun = std::bind(&test_entity_second::setup_member, std::placeholders::_1, 1);
 
-//  std::function<void(test_entity_second *)> mymemberfun = std::bind(test_entity_second::setup, std::placeholders::_1, 1);
+  mytestbed->add("sample");
+
+  std::function<void(test_entity_second *)> myfun = std::bind(&test_entity_second::setup_member, std::placeholders::_1, 1);
+//  auto myfun = std::bind(&test_entity_second::setup_member, std::placeholders::_1, 1);
+  mytestbed->add("second", myfun);
+  myfun = std::bind(&test_entity_second::setup_member, std::placeholders::_1, 2);
+  mytestbed->add("second", myfun);
 
   mytestbed->print_available();
 

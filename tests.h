@@ -276,7 +276,7 @@ namespace testbed{
 
     }*/
 
-    template <typename T> void configure_test(std::string name, std::function<void(T)> myfunc){
+    template <typename T> void add(std::string name, std::function<void(T)> myfunc){
       //apply a setup function
       //As a test, create a name and call the function
       std::shared_ptr<test_entity> eg = testbed::test_factory::instance()->create(name);
@@ -285,6 +285,8 @@ namespace testbed{
       T oh_gods_the_humanity = dynamic_cast<T> (eg.get());
 //      myfunc(dynamic_cast<test_entity *> (eg) );
       myfunc(oh_gods_the_humanity);
+      eg->parent = this;
+      test_list.push_back(eg);
 
     }
 
