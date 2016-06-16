@@ -21,7 +21,7 @@
 
 #define calc_type double
 
-#define REGISTER(x) static testbed::Registrar<test_entity_ ## x> registrar_ ## x(" ##x")
+#define REGISTER(x) static testbed::Registrar<test_entity_ ## x> registrar_ ## x( # x)
 //static testbed::Registrar<test_entity_sample> registrar("sample");
 //This string can be anything, but for sanity, make it the additional part of the test entity
 //static testbed::Registrar<test_entity_sample> registrar_sample;
@@ -186,6 +186,7 @@ namespace testbed{
 
   /* The factory implmentation is adapted from http://www.codeproject.com/Articles/567242/AplusC-b-bplusObjectplusFactory*/
   class test_factory{
+  friend class tests;
   private:
     std::map<std::string, std::function<test_entity*(void)> > factoryFunctionRegistry;
   public:
@@ -202,7 +203,7 @@ namespace testbed{
 
   std::shared_ptr<test_entity> test_factory::create(std::string name){
       test_entity * instance = nullptr;
-
+//      for(auto it = this->factoryFunctionRegistry.begin(); it !=this->factoryFunctionRegistry.end(); it++) std::cout<<it->first;
       // find name in the registry and call factory method.
       auto it = this->factoryFunctionRegistry.find(name);
       if(it != this->factoryFunctionRegistry.end())
@@ -220,7 +221,7 @@ namespace testbed{
       Registrar(std::string name)
       {
           // register the class factory function
-          std::cout<<"here"<<'\n';
+//          std::cout<<"here"<<'\n';
           test_factory::instance()->registerFactoryFunction(name,
                   [](void) -> test_entity * { return new T();});
       }
@@ -262,6 +263,30 @@ namespace testbed{
     std::vector<std::shared_ptr<test_entity> > test_list;/**< List of tests to run*/
     int verbosity;/**< Verbosity level of output*/
   public:
+
+  /*  template <typename T> void configure_test(std::string name, std::function<void(T)> myfunc){
+      //apply a setup function
+      //As a test, create a name and call the function
+      std::shared_ptr<test_entity> eg = testbed::test_factory::instance()->create(name);
+      //<dynamic_cast eg->myfunc;
+//      test_entity * this_is_terrible = eg.get();
+      T oh_gods_the_humanity = dynamic_cast<T> (eg.get());
+//      myfunc(dynamic_cast<test_entity *> (eg) );
+      myfunc(oh_gods_the_humanity);
+
+    }*/
+
+    template <typename T> void configure_test(std::string name, std::function<void(T)> myfunc){
+      //apply a setup function
+      //As a test, create a name and call the function
+      std::shared_ptr<test_entity> eg = testbed::test_factory::instance()->create(name);
+      //<dynamic_cast eg->myfunc;
+//      test_entity * this_is_terrible = eg.get();
+      T oh_gods_the_humanity = dynamic_cast<T> (eg.get());
+//      myfunc(dynamic_cast<test_entity *> (eg) );
+      myfunc(oh_gods_the_humanity);
+
+    }
 
     /** \brief Log error
     *
@@ -311,6 +336,12 @@ namespace testbed{
       eg->parent = this;
       test_list.push_back(eg);
     }
+    void print_available(){
+    /** Print names of all registered tests */
+      auto registry = testbed::test_factory::instance()->factoryFunctionRegistry;
+          for(auto it = registry.begin(); it !=registry.end(); it++) std::cout<<it->first<<'\n';
+    
+    }
 
     /** Delete test objects */
     void cleanup_tests(){
@@ -321,9 +352,7 @@ namespace testbed{
         this->report_info("No logfile generated", 0);
       }
       delete outfile;
-      for(current_test_id=0; current_test_id< (int)test_list.size(); current_test_id++){
-//        delete test_list[current_test_id];
-      }
+      test_list.clear();
     };
 
     /** \brief Run scheduled tests

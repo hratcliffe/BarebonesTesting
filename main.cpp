@@ -24,8 +24,6 @@ class test_entity_sample : public testbed::test_entity{
 
 int test_entity_sample::run(){
   int err=testbed::TEST_PASSED;
-std::cout<<std::setprecision(10);
-
   //  x^3 - 17x^2 + 92x - 150.
   std::vector<double> result = cubic_solve(-17.0, 92.0, -150.0);
   if((result.size() != 1) || std::abs(result[0] - 3.0) > testbed::PRECISION) err|=testbed::TEST_WRONG_RESULT;
@@ -58,6 +56,8 @@ class test_entity_second : public testbed::test_entity{
   }
   virtual ~test_entity_second(){;};
   virtual int run();
+  void setup(int a){std::cout<<a<<'\n';}
+  void setup_member(int a){std::cout<<a<<'\n';std::cout<<this->name<<'\n';this->name="fish";std::cout<<this->name<<'\n';}
 };
 int test_entity_second::run(){
 
@@ -65,8 +65,9 @@ int test_entity_second::run(){
   return 0;
 }
 REGISTER(second);
- 
 
+//void setup_second(test_entity_second * inst, int a){std::cout<<a<<'\n';std::cout<<inst->name<<'\n';}
+void setup_second(test_entity_second * inst, int a){std::cout<<a<<'\n';std::cout<<inst->name<<'\n';inst->name="fish";std::cout<<inst->name<<'\n';}
 
 int main(int argc, char ** argv){
 
@@ -81,27 +82,30 @@ int main(int argc, char ** argv){
   mpi_info_struc mpi_info;
   mpi_info.rank = rank;
   mpi_info.n_procs = n_procs;
-/*
-  testbed::tests * mytestbed = new testbed::tests();
-  testbed::set_mpi(mpi_info);
-  testbed::set_filename("testing.log");
-  mytestbed->setup_tests();
-  test_entity_sample * mytest = new test_entity_sample();
-  mytestbed->add_test(mytest);
-  mytestbed->run_tests();
-  
-  delete mytestbed;
-*/
 
   testbed::tests * mytestbed = new testbed::tests();
   testbed::set_mpi(mpi_info);
   testbed::set_filename("testing.log");
   mytestbed->setup_tests();
+
   mytestbed->add("sample");
+  mytestbed->add("second");
+
+  //std::function<void(void)> myfun = std::bind(setup_second, 1);
+//  std::function<void(test_entity_second *)> myfun = std::bind(setup_second, std::placeholders::_1, 1);
+  std::function<void(test_entity_second *)> myfun = std::bind(&test_entity_second::setup_member, std::placeholders::_1, 1);
+  
+  mytestbed->configure_test("second", myfun);
+  mytestbed->configure_test("second", myfun);
+
+//  std::function<void(test_entity_second *)> mymemberfun = std::bind(test_entity_second::setup, std::placeholders::_1, 1);
+
+  mytestbed->print_available();
 
   mytestbed->run_tests();
-//  auto eg = testbed::test_factory::instance()->create("sample");
-//  std::cout<<eg->name<<'\n';
+
+  delete mytestbed;
+  MPI_Finalize();
 
 }
 
