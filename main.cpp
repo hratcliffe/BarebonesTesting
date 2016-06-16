@@ -2,7 +2,10 @@
 
 #include <stdio.h>
 #include "tests.h"
+
+#ifdef USE_MPI
 #include <mpi.h>
+#endif
 //#include "test_min.h"
 #include <iomanip>
 #include <math.h>
@@ -24,6 +27,8 @@ class test_entity_sample : public testbed::test_entity{
 
 int test_entity_sample::run(){
   int err=testbed::TEST_PASSED;
+  report_info("Checking cubic roots");
+
   //  x^3 - 17x^2 + 92x - 150.
   std::vector<double> result = cubic_solve(-17.0, 92.0, -150.0);
   if((result.size() != 1) || std::abs(result[0] - 3.0) > testbed::PRECISION) err|=testbed::TEST_WRONG_RESULT;
@@ -41,6 +46,8 @@ int test_entity_sample::run(){
       
     }
   }
+  report_info("Cubic roots OK");
+
   report_err(err);
   return err;
 
@@ -56,27 +63,74 @@ class test_entity_second : public testbed::test_entity{
   }
   virtual ~test_entity_second(){;};
   virtual int run();
- // void setup_member(int a, int b){std::cout<<a+b<<'\n';number=a+b;}
   int number;
-//  void setup_member(int a){std::cout<<a<<'\n';std::cout<<this->name<<'\n';this->name="fish";std::cout<<this->name<<'\n';number=a;}
+  void setup(int a){number=a;}
   void setup(int a, std::string b){number=a;}
-  //{std::cout<<a<<" "<<b<<'\n';std::cout<<this->name<<'\n';number=a;}
+  void setup(){name="still second";}
 
 };
 int test_entity_second::run(){
-  report_info(testbed::mk_str(number));
+  report_info("Number is "+testbed::mk_str(number));
   report_err(0);
   return 0;
 }
 REGISTER(second);
 
-//void setup_second(test_entity_second * inst, int a){std::cout<<a<<'\n';std::cout<<inst->name<<'\n';}
-//void setup_second(test_entity_second * inst, int a){std::cout<<a<<'\n';std::cout<<inst->name<<'\n';inst->name="fish";std::cout<<inst->name<<'\n';}
+class test_entity_fail : public testbed::test_entity{
+  private:
+  public:
+  test_entity_fail(){
+    name = "fails";
+  }
+  virtual ~test_entity_fail(){;};
+  virtual int run();
+};
+int test_entity_fail::run(){
+  report_err(testbed::TEST_WRONG_RESULT);
+  return testbed::TEST_WRONG_RESULT;
+}
+REGISTER(fail);
+
+class test_entity_setup : public testbed::test_entity{
+  private:
+  public:
+  test_entity_setup(){
+    name = "setup";
+  }
+  virtual ~test_entity_setup(){;};
+  virtual int run();
+  bool isset = false;
+  void setup(){isset=true;}
+};
+int test_entity_setup::run(){
+  report_info("Isset is "+testbed::mk_str(isset));
+  report_err(testbed::TEST_PASSED);
+  return testbed::TEST_PASSED;
+}
+REGISTER(setup);
+
+class test_entity_setup2 : public testbed::test_entity{
+  private:
+  public:
+  test_entity_setup2(){
+    name = "setup2";
+  }
+  virtual ~test_entity_setup2(){;};
+  virtual int run();
+  bool isset = false;
+  void setup(bool set){isset=set;}
+};
+int test_entity_setup2::run(){
+  report_info("Isset is "+testbed::mk_str(isset));
+  report_err(testbed::TEST_PASSED);
+  return testbed::TEST_PASSED;
+}
+REGISTER(setup2);
 
 int main(int argc, char ** argv){
 
   int ierr, rank, n_procs;
-
+#ifdef USE_MPI
   ierr = MPI_Init(&argc, &argv);
   //Note any other command line arg processing should account for this...
 
@@ -86,38 +140,52 @@ int main(int argc, char ** argv){
   mpi_info_struc mpi_info;
   mpi_info.rank = rank;
   mpi_info.n_procs = n_procs;
-
+#endif
   testbed::tests * mytestbed = new testbed::tests();
+
+#ifdef USE_MPI
   testbed::set_mpi(mpi_info);
+#endif
   testbed::set_filename("testing.log");
   mytestbed->setup_tests();
 
+  //Adding simple tests:
   mytestbed->add("sample");
+  mytestbed->add("fail");
 
-  ADDABLE_FN_TYPE(second) myfun = ADDABLE_FN(second::setup, 1, "hi");
 
-//  void (test_entity_second::*tmpfn)(int) = &test_entity_second::setup_member;
-//Create tmpfn with correct signature
-//  myfun = std::bind(tmpfn, std::placeholders::_1, 1);
+  //Adding a test with an argument-less setup function, with and without invoking it
+  mytestbed->add("setup");
+  ADDABLE_FN_TYPE(setup) mysetupfun = ADDABLE_FN_NOARG(setup::setup);
+  mytestbed->add("setup", mysetupfun);
 
-  //RESOLVED_FN_TYPE(second, tmpfn)(int);
-//  myfun = [&test_entity_second::setup_member](test_entity_second *){ return 
-//  auto aBind = [&a](int i, int j){ return a(i, j); };
+  mytestbed->add("setup2", (ADDABLE_FN_TYPE(setup2)) ADDABLE_FN(setup2::setup, true));
+//  myfun = ADDABLE_FN(second::setup, 5, "bum");
+
+  //Adding several versions of a test, with an overloaded setup function
+  RESOLVED_FN_TYPE(second, tmpfn)(int) = RESOLVED_FN(second, setup);
+  ADDABLE_FN_TYPE(second) myfun = MEMBER_BIND(tmpfn, 1);
   mytestbed->add("second", myfun);
-  mytestbed->add("second", (ADDABLE_FN_TYPE(second)) ADDABLE_FN(second::setup, 2, ""));
-  //myfun = std::bind(&test_entity_second::setup_member, std::placeholders::_1, 2, 3);
-//  myfun = ADDABLE_FN(2,3);
-  myfun = ADDABLE_FN(second::setup, 5, "bum");
+
+  RESOLVED_FN_TYPE(second, tmpfn2)(int, std::string) = RESOLVED_FN(second, setup);
+  myfun = MEMBER_BIND(tmpfn2, 5, "bum");
   mytestbed->add("second", myfun);
 
+  RESOLVED_FN_TYPE(second, tmpfn3)(void) = RESOLVED_FN(second, setup);
+  myfun = MEMBER_BIND_NOARG(tmpfn3);
+  mytestbed->add("second", myfun);
+
+  testbed::my_print("Available tests:");
   mytestbed->print_available();
 
+  testbed::my_print("Running tests");
   mytestbed->run_tests();
-
   
   delete mytestbed;
-  MPI_Finalize();
 
+#ifdef USE_MPI
+  MPI_Finalize();
+#endif
 }
 /** Adding tests to the remit
 *

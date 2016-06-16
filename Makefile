@@ -19,4 +19,8 @@ main : main.o
 main.o: tests.h
 %.o:%.cpp
 	$(CC) $(CFLAGS)  $< -o $@
+.PHONY nolink :
+	$(CC) $(CFLAGS) -E main.cpp -o pp.out
 
+.PHONY clean :
+	rm main.o main

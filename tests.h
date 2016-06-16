@@ -21,10 +21,17 @@
 
 #define calc_type double
 
+#define PASTE(x, y) x ## y
 #define REGISTER(x) static testbed::Registrar<test_entity_ ## x> registrar_ ## x( # x)
 #define ADDABLE_FN_TYPE(x) std::function<void(test_entity_ ## x *)>
+#define ADDABLE_FN_NOARG(x) std::bind(&test_entity_ ##x, std::placeholders::_1)
 #define ADDABLE_FN(x, ...) std::bind(&test_entity_ ##x, std::placeholders::_1, __VA_ARGS__)
-//#define RESOLVED_FN_TYPE(x, y) void (test_entity_ ## x::* ##y)
+#define PASTE_W_COLON(x, y) x :: y
+#define RESOLVED_FN_TYPE(x, y) void (test_entity_ ##x ::* y)
+#define RESOLVED_FN(x, y) &test_entity_##x :: y
+#define MEMBER_BIND(x, ...) std::bind( x ,std::placeholders::_1, __VA_ARGS__)
+#define MEMBER_BIND_NOARG(x) std::bind( x ,std::placeholders::_1)
+
 // = &test_entity_ ## x ::setup_member;
 
 //void (test_entity_second::*tmpfn)(int) = &test_entity_second::setup_member;
