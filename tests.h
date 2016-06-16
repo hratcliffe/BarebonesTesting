@@ -21,6 +21,13 @@
 
 #define calc_type double
 
+#define REGISTER(x) static testbed::Registrar<test_entity_ ## x> registrar(" ##x")
+//static testbed::Registrar<test_entity_sample> registrar("sample");
+//This string can be anything, but for sanity, make it the additional part of the test entity
+//static testbed::Registrar<test_entity_sample> registrar_sample;
+//When this breaks, google "most vexing parse"
+
+
 struct mpi_info_struc{
   int rank;
   int n_procs;
@@ -300,18 +307,6 @@ namespace testbed{
         return;
       }
     }
-
-    /** Adds a test to the list to be performed. This takes complete ownership of the entity
-    
-    We can make a copy. Has to be a deep copy. And each derived class must implement this too.... urk
-    We could use std::shared_ptr because we can happily modify the object just not delete it. We don't care if there are copy or moves etc etc
-    */
-/*    void add_test(test_entity * test){
-      
-      test->parent = this;
-      test_list.push_back(test);
-      
-    };*/
 
     void add(std::string name){
       std::shared_ptr<test_entity> eg = testbed::test_factory::instance()->create(name);

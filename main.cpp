@@ -48,8 +48,7 @@ std::cout<<std::setprecision(10);
 
 }
 
-static testbed::Registrar<test_entity_sample> registrar("sample");
-//This string can be anything, but for sanity, make it the additional part of the test entity
+REGISTER(sample);
 
 int main(int argc, char ** argv){
 
