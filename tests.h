@@ -21,6 +21,15 @@
 
 #define calc_type double
 
+#define REGISTER(x) static testbed::Registrar<test_entity_ ## x> registrar_ ## x
+#define REGISTERDUP(x, y) static testbed::Registrar<test_entity_ ## x> registrar_ ## x ## y
+
+//static testbed::Registrar<test_entity_sample> registrar("sample");
+//This string can be anything, but for sanity, make it the additional part of the test entity
+//static testbed::Registrar<test_entity_sample> registrar_sample;
+//When this breaks, google "most vexing parse"
+
+
 struct mpi_info_struc{
   int rank;
   int n_procs;
@@ -169,7 +178,8 @@ namespace testbed{
 
     tests * parent;
     std::string name;/**< The name of the test, which will be reported in the log file*/
-    test_entity(){parent = nullptr; name = "";}
+    test_entity(){parent = nullptr; //name = "";
+    }
     virtual ~test_entity(){;}
     virtual int run()=0;/*Pure virtual because we don't want an instances of this template*/
     void report_info(std::string info, int verb_to_print =1);
@@ -178,16 +188,25 @@ namespace testbed{
   };
 
   /* The factory implmentation is adapted from http://www.codeproject.com/Articles/567242/AplusC-b-bplusObjectplusFactory*/
+
+  //class Registrar;
   class test_factory{
   private:
-    std::map<std::string, std::function<test_entity*(void)> > factoryFunctionRegistry;
-  public:
-    static std::shared_ptr<test_entity> CreateInstance(std::string name);
-//    static test_entity * CreateInstance(std::string name);
+    std::map<long, std::function<test_entity*(void)> > factoryFunctionRegistry;
+    std::map<std::string, long> factoryFunctionLookup;
 
-    void registerFactoryFunction(std::string name, std::function<test_entity*(void)> classFactoryFunction){ factoryFunctionRegistry[name] = classFactoryFunction;}
+  protected:
+
+//    template<class T> friend Registrar::Registrar();
+  public:
+//    static std::shared_ptr<test_entity> CreateInstance(std::string name);
+//    static test_entity * CreateInstance(std::string name);
+    long get_next_lookup_key();
+    void refreshLookup();
     static test_factory * instance();
     std::shared_ptr<test_entity> create(std::string name);
+    void registerFactoryFunction(long myid, std::function<test_entity*(void)> classFactoryFunction){
+    factoryFunctionRegistry[myid] = classFactoryFunction;}
 
   };
   test_factory * test_factory::instance(){
@@ -195,14 +214,37 @@ namespace testbed{
     return &factory;
   }
 
+  long test_factory::get_next_lookup_key(){
+    long next_id = factoryFunctionRegistry.size();
+    while(factoryFunctionRegistry.count(next_id) > 0 ) next_id++;
+    //Better way????
+    return next_id;
+  };
+  void test_factory::refreshLookup(){
+    this->factoryFunctionLookup.clear();
+    test_entity * mytest;
+    long myid;
+    for(auto it=this->factoryFunctionRegistry.begin(); it!=this->factoryFunctionRegistry.end(); it++){
+        myid = it->first;
+        mytest = it->second();
+        factoryFunctionLookup[mytest->name] = myid;
+        delete mytest;
+    }
+  };
+
   std::shared_ptr<test_entity> test_factory::create(std::string name){
       test_entity * instance = nullptr;
 
       // find name in the registry and call factory method.
-      auto it = this->factoryFunctionRegistry.find(name);
+      if(this->factoryFunctionRegistry.size() != this->factoryFunctionLookup.size()) this->refreshLookup();
+      //There has to be as many names in the lookup as in the registry
+      auto tmp = this->factoryFunctionLookup.find(name);
+      long myid = -1;
+      if(tmp != this->factoryFunctionLookup.end()) myid = tmp->second;
+
+      auto it = this->factoryFunctionRegistry.find(myid);
       if(it != this->factoryFunctionRegistry.end())
           instance = it->second();
-
       // wrap instance in a shared ptr and return
       if(instance != nullptr)
           return std::shared_ptr<test_entity>(instance);
@@ -210,13 +252,15 @@ namespace testbed{
           return nullptr;
   }
   
-  template<class T>
-  class Registrar {
+  template<class T> class Registrar {
   public:
-      Registrar(std::string name)
+      Registrar()
       {
-          // register the class factory function 
-          test_factory::instance()->registerFactoryFunction(name,
+          long myid = test_factory::instance()->get_next_lookup_key();
+          // register the class factory function
+//          T * tmp = new T();
+          std::cout<<"here "<<myid<<'\n';
+          test_factory::instance()->registerFactoryFunction(myid,
                   [](void) -> test_entity * { return new T();});
       }
   };
@@ -301,18 +345,6 @@ namespace testbed{
       }
     }
 
-    /** Adds a test to the list to be performed. This takes complete ownership of the entity
-    
-    We can make a copy. Has to be a deep copy. And each derived class must implement this too.... urk
-    We could use std::shared_ptr because we can happily modify the object just not delete it. We don't care if there are copy or moves etc etc
-    */
-/*    void add_test(test_entity * test){
-      
-      test->parent = this;
-      test_list.push_back(test);
-      
-    };*/
-
     void add(std::string name){
       std::shared_ptr<test_entity> eg = testbed::test_factory::instance()->create(name);
       eg->parent = this;
@@ -330,6 +362,7 @@ namespace testbed{
       delete outfile;
       for(current_test_id=0; current_test_id< (int)test_list.size(); current_test_id++){
 //        delete test_list[current_test_id];
+        test_list[current_test_id].reset();
       }
     };
 

@@ -15,7 +15,7 @@ class test_entity_sample : public testbed::test_entity{
   private:
   public:
   test_entity_sample(){
-    name = "sample test";
+    name = "sample";
   }
   virtual ~test_entity_sample(){;};
   virtual int run();
@@ -48,8 +48,30 @@ std::cout<<std::setprecision(10);
 
 }
 
-static testbed::Registrar<test_entity_sample> registrar("sample");
-//This string can be anything, but for sanity, make it the additional part of the test entity
+REGISTER(sample);
+REGISTERDUP(sample,2);
+
+class test_entity_second : public testbed::test_entity{
+  private:
+  public:
+  test_entity_second(){
+    name = "second";
+  }
+  virtual ~test_entity_second(){;};
+  virtual int run();
+
+};
+int test_entity_second::run(){
+
+  report_err(0);
+
+  return 0;
+
+}
+
+//static testbed::Registrar<test_entity_second> registrar_second;
+
+REGISTER(second);
 
 int main(int argc, char ** argv){
 
@@ -81,6 +103,7 @@ int main(int argc, char ** argv){
   testbed::set_filename("testing.log");
   mytestbed->setup_tests();
   mytestbed->add("sample");
+  mytestbed->add("second");
 
   mytestbed->run_tests();
 //  auto eg = testbed::test_factory::instance()->create("sample");
