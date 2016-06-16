@@ -21,7 +21,7 @@
 
 #define calc_type double
 
-#define REGISTER(x) static testbed::Registrar<test_entity_ ## x> registrar(" ##x")
+#define REGISTER(x) static testbed::Registrar<test_entity_ ## x> registrar_ ## x(" ##x")
 //static testbed::Registrar<test_entity_sample> registrar("sample");
 //This string can be anything, but for sanity, make it the additional part of the test entity
 //static testbed::Registrar<test_entity_sample> registrar_sample;
@@ -189,8 +189,6 @@ namespace testbed{
   private:
     std::map<std::string, std::function<test_entity*(void)> > factoryFunctionRegistry;
   public:
-    static std::shared_ptr<test_entity> CreateInstance(std::string name);
-//    static test_entity * CreateInstance(std::string name);
 
     void registerFactoryFunction(std::string name, std::function<test_entity*(void)> classFactoryFunction){ factoryFunctionRegistry[name] = classFactoryFunction;}
     static test_factory * instance();
@@ -209,7 +207,6 @@ namespace testbed{
       auto it = this->factoryFunctionRegistry.find(name);
       if(it != this->factoryFunctionRegistry.end())
           instance = it->second();
-
       // wrap instance in a shared ptr and return
       if(instance != nullptr)
           return std::shared_ptr<test_entity>(instance);
@@ -222,7 +219,8 @@ namespace testbed{
   public:
       Registrar(std::string name)
       {
-          // register the class factory function 
+          // register the class factory function
+          std::cout<<"here"<<'\n';
           test_factory::instance()->registerFactoryFunction(name,
                   [](void) -> test_entity * { return new T();});
       }

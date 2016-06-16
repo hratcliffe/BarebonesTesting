@@ -50,6 +50,24 @@ std::cout<<std::setprecision(10);
 
 REGISTER(sample);
 
+class test_entity_second : public testbed::test_entity{
+  private:
+  public:
+  test_entity_second(){
+    name = "second";
+  }
+  virtual ~test_entity_second(){;};
+  virtual int run();
+};
+int test_entity_second::run(){
+
+  report_err(0);
+  return 0;
+}
+REGISTER(second);
+ 
+
+
 int main(int argc, char ** argv){
 
   int ierr, rank, n_procs;
