@@ -153,14 +153,13 @@ int main(int argc, char ** argv){
   mytestbed->add("sample");
   mytestbed->add("fail");
 
-
   //Adding a test with an argument-less setup function, with and without invoking it
   mytestbed->add("setup");
   ADDABLE_FN_TYPE(setup) mysetupfun = ADDABLE_FN_NOARG(setup::setup);
   mytestbed->add("setup", mysetupfun);
 
+  //Adding a test with a single argument setup function, in one line. NB the type cast
   mytestbed->add("setup2", (ADDABLE_FN_TYPE(setup2)) ADDABLE_FN(setup2::setup, true));
-//  myfun = ADDABLE_FN(second::setup, 5, "bum");
 
   //Adding several versions of a test, with an overloaded setup function
   RESOLVED_FN_TYPE(second, tmpfn)(int) = RESOLVED_FN(second, setup);
@@ -191,12 +190,15 @@ int main(int argc, char ** argv){
 *
 *For a test where all necessary setup can be done in the constructor, simply call mytestbed->add("name"); where name is the name the class is registered under. 
 *For a simple setup function, with any number of parameters but no overloads, we bind together the setup function arguments to the values required, and pass that as second argument to add(). Using supplied macros: 
-ADDABLE_FN_TYPE(second) myfun = ADDABLE_FN(name::functionname, 1, "hello"); etc
+ADDABLE_FN_TYPE(name) myfun = ADDABLE_FN(name::functionname, 1, "hello"); etc
 and then mytestbed->add("name", myfun)
 Before the test is run, the setup function will be invoked with the arguments given. Multiple calls to add with different arguments may be made, each adding a new test object
+*
+*The macros above expand to std::function<void(test_entity_name *)> myfun = std::bind(&test_entity_name::functionname, std::placeholders::_1, 1, "hello") Note the placeholder for the this argument as we're using a member function. The end result of the binding which is passed to add must be a function taking exactly one parameter, a this pointer for the object specified by "name". 
+*
 For overloaded setup functions, there is an additional step. std::bind, which underlies the ADDABLE_FN macro, has to be told which overload is required. 
 So we first do void (test_entity_second::*tmpfn)(int) = &test_entity_second::setup_member;
-to create tmpfn with the correct signature, and then bind to the parameters of tmpfn like this myfun = std::bind(tmpfn, std::placeholders::_1, 1); Finally we call add("name", myfun) as before. 
+to create tmpfn with the correct signature, and then bind to the parameters of tmpfn like this myfun = std::bind(tmpfn, std::placeholders::_1, 1); Finally we call add("name", myfun) as before. Macros to build this syntax are used like this:   RESOLVED_FN_TYPE(name, tmpfunctionname)(argument specification) = RESOLVED_FN(name, functionname); myfun = MEMBER_BIND[_NOARG](tmpfunctionname [, arg list]);
 
 */
 
