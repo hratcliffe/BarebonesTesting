@@ -13,14 +13,20 @@ DEBUG = -g -W -Wall -pedantic -D_GLIBCXX_DEBUG -Wextra
 #Comment/uncomment these to hide specific errors...
 PROFILE = -g
 LFLAGS = -g
+DUMMYDIR = dummydeps
 
 main : main.o
 	$(CC) $(LFLAGS) main.o $(LIB) -o main
 main.o: tests.h
 %.o:%.cpp
 	$(CC) $(CFLAGS)  $< -o $@
-.PHONY nolink :
-	$(CC) $(CFLAGS) -E main.cpp -o pp.out
 
-.PHONY clean :
+.PHONY: preprocess clean
+preprocess :
+	#$(CC) -M main.cpp -o deps.out
+	./touch_deps $(DUMMYDIR) main.cpp tests.h
+	$(CC) $(CFLAGS) -I $(DUMMYDIR) -E -nostdinc main.cpp -o pp.out
+	./clean_deps $(DUMMYDIR)
+
+clean :
 	rm main.o main

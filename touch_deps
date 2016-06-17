@@ -1,0 +1,15 @@
+#!/bin/bash
+
+dummydir=$1
+shift
+mkdir -p $dummydir
+
+while [[ $# > 0 ]]
+do
+  codefile=$1
+  filez=`sed -n 's/.*#include[ ]*<\([a-z.]*\)>.*/\1/p' $codefile`
+  for file in $filez ; do
+    touch $dummydir/$file
+  done
+  shift
+done
