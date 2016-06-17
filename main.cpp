@@ -12,6 +12,7 @@
 #include <cmath>
 
 #define calc_type double
+
 std::vector<double> cubic_solve(calc_type an, calc_type bn, calc_type cn);
 
 class test_entity_sample : public testbed::test_entity{
@@ -26,7 +27,7 @@ class test_entity_sample : public testbed::test_entity{
 };
 
 int test_entity_sample::run(){
-  int err=testbed::TEST_PASSED;
+  testbed::TEST_ERR err=testbed::TEST_PASSED;
   report_info("Checking cubic roots");
 
   //  x^3 - 17x^2 + 92x - 150.

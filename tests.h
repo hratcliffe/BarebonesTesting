@@ -23,24 +23,20 @@
 
 #define PASTE(x, y) x ## y
 #define REGISTER(x) static testbed::Registrar<test_entity_ ## x> registrar_ ## x( # x)
+//Expands out the correct syntax for registering function with testbed
+//When this breaks, google "most vexing parse"
+
+
 #define ADDABLE_FN_TYPE(x) std::function<void(test_entity_ ## x *)>
 #define ADDABLE_FN_NOARG(x) std::bind(&test_entity_ ##x, std::placeholders::_1)
 #define ADDABLE_FN(x, ...) std::bind(&test_entity_ ##x, std::placeholders::_1, __VA_ARGS__)
-#define PASTE_W_COLON(x, y) x :: y
+//These expand out the correct syntax for binding arguments to a setup function
+
 #define RESOLVED_FN_TYPE(x, y) void (test_entity_ ##x ::* y)
 #define RESOLVED_FN(x, y) &test_entity_##x :: y
 #define MEMBER_BIND(x, ...) std::bind( x ,std::placeholders::_1, __VA_ARGS__)
 #define MEMBER_BIND_NOARG(x) std::bind( x ,std::placeholders::_1)
-
-// = &test_entity_ ## x ::setup_member;
-
-//void (test_entity_second::*tmpfn)(int) = &test_entity_second::setup_member;
-//Create tmpfn with correct signature
-//  myfun = std::bind(tmpfn, std::placeholders::_1, 1);
-//static testbed::Registrar<test_entity_sample> registrar("sample");
-//This string can be anything, but for sanity, make it the additional part of the test entity
-//static testbed::Registrar<test_entity_sample> registrar_sample;
-//When this breaks, google "most vexing parse"
+//These expand out the syntax for resolving overloads and binding arguments
 
 
 struct mpi_info_struc{
@@ -48,16 +44,27 @@ struct mpi_info_struc{
   int n_procs;
   bool operator ==(const mpi_info_struc& rhs) const { return rhs.rank == this->rank && rhs.n_procs == this->n_procs;}
 };
+/** Structure holding minimal mpi info*/
 
 const struct mpi_info_struc mpi_info_null = {0, 0};
+/** Null MPI struct */
 
 namespace testbed{
+/** Namespace for all the testbed code*/
 
-/*#ifdef USEMPI
-  const mpi_info_struc mpi_info={1, 2};
-#else*/
+  struct colours{
+    char fail;
+    char info;
+    char pass;
+    char normal;
+    
+  };
+  /** Colours for printing according to function*/
+  struct colours test_colours={'R', 'g', 'b', '0'};
+  /** Default colours */
+
   mpi_info_struc mpi_info = mpi_info_null;
-//#endif
+  /** Default MPI struct is null, i.e no restriction on printing */
 
   const int TEST_PASSED = 0;
   const int TEST_WRONG_RESULT = 1;
@@ -68,12 +75,13 @@ namespace testbed{
   const int TEST_USERDEF_ERR3 = 32;
   const int TEST_USERDEF_ERR4 = 64;
   const int err_tot = 8;
+  typedef int TEST_ERR;
   const calc_type PRECISION = 1e-10;/**< Constant for equality at normal precision i.e. from rounding errors etc*/
   const calc_type NUM_PRECISION = 1e-6;/**< Constant for equality at good numerical precision, e.g. from numerical integration over 100-1000 pts*/
   const calc_type LOW_PRECISION = 5e-3;/**< Constant for equality at low precision, i.e. different approximations to an expression*/
   const int max_verbos = 4;
-  std::string filename = "tests.log";/**<Test log file*/
-  bool hasColour = false;
+  std::string filename = "tests.log";/**<Default test log file*/
+  bool hasColour = false;/**< Flag for terminal colour use*/
 
   const int err_codes[err_tot] ={TEST_PASSED, TEST_WRONG_RESULT, TEST_NULL_RESULT, TEST_ASSERT_FAIL, TEST_USERDEF_ERR1, TEST_USERDEF_ERR2, TEST_USERDEF_ERR3, TEST_USERDEF_ERR4};/**< List of error codes available*/
 
@@ -127,18 +135,18 @@ namespace testbed{
 
    void trim_string(std::string &str, char ch=' '); /**< Trim all leading/trailing ch's from str*/
 
-#ifdef USECPP11
+//#ifdef USECPP11
 //We have to_string, just wrap that for numeric types
 
   template <typename T> std::string mk_str(T input){
     return std::to_string(input);
   }
 
-  template <typename T> std::string mk_str(T input, bool noexp){
+/*  template <typename T> std::string mk_str(T input, bool noexp){
     return std::to_string(input);
   }
 
-#else
+//#else
   inline std::string mk_str(int i){
 
     char buffer[25];
@@ -146,7 +154,8 @@ namespace testbed{
     std::string ret = buffer;
     return ret;
     
-  }
+  }*/
+  //Is sometimes useful to print a number in entirety, rather than using SciForm
   inline std::string mk_str(double i, bool noexp=0){
 
     char buffer[25];
@@ -157,7 +166,6 @@ namespace testbed{
     
   }
   inline std::string mk_str(bool b){
-
     if(b) return "1";
     else return "0";
 
@@ -165,7 +173,7 @@ namespace testbed{
   inline std::string mk_str(long double i, bool noexp){return mk_str((double) i, noexp);};
   inline std::string mk_str(float i, bool noexp){return mk_str((double) i, noexp);};
 
-#endif
+//#endif
 
   inline void check_term(){
     /** \brief Check terminal capabilites
@@ -196,6 +204,7 @@ namespace testbed{
     virtual int run()=0;/*Pure virtual because we don't want an instances of this template*/
     void report_info(std::string info, int verb_to_print =1);
     void report_err(int err);
+    virtual void setup(){;};
 
   };
 
@@ -300,6 +309,7 @@ namespace testbed{
       T oh_gods_the_humanity = dynamic_cast<T> (eg.get());
 //      myfunc(dynamic_cast<test_entity *> (eg) );
       myfunc(oh_gods_the_humanity);
+//      myfunc(eg.get());
       eg->parent = this;
       test_list.push_back(eg);
 
@@ -310,8 +320,11 @@ namespace testbed{
     * Logs error text corresponding to code err for test defined by test_id. Errors are always recorded.*/
     void report_err(int err, int test_id=-1){
       if(test_id == -1) test_id = current_test_id;
-      if(err ==TEST_PASSED) set_colour('b');
-      else set_colour('r');
+//      if(err ==TEST_PASSED) set_colour('b');
+//      else set_colour('r');
+      if(err ==TEST_PASSED) set_colour(test_colours.pass);
+      else set_colour(test_colours.fail);
+
       my_print(outfile, get_printable_error(err, test_id), mpi_info.rank);
       my_print(nullptr, get_printable_error(err, test_id), mpi_info.rank);
       set_colour();
@@ -322,11 +335,13 @@ namespace testbed{
     *Records string info to the tests.log file and to screen, according to requested verbosity.
     */
     void report_info(std::string info, int verb_to_print = 1, int test_id=-1){
+      set_colour(test_colours.info);
       if(test_id == -1) test_id = current_test_id;
       if(verb_to_print <= this->verbosity){
         my_print(outfile, info, mpi_info.rank);
         my_print(nullptr, info, mpi_info.rank);
       }
+      set_colour();
   };
 
     tests(){
@@ -346,6 +361,7 @@ namespace testbed{
         //can't log so return with empty test list
         return;
       }
+      //set_colour(test_colours.normal);
     }
 
     void add(std::string name){
@@ -363,10 +379,12 @@ namespace testbed{
     /** Delete test objects */
     void cleanup_tests(){
       if(outfile->is_open()){
-        this->report_info("Testing complete and logged in " +filename, 0);
+        my_print("Testing complete and logged in " +filename, mpi_info.rank);
         outfile->close();
       }else{
-        this->report_info("No logfile generated", 0);
+        set_colour(test_colours.fail);
+        my_print("No logfile generated", mpi_info.rank);
+        set_colour();
       }
       delete outfile;
       test_list.clear();
@@ -383,12 +401,18 @@ namespace testbed{
         //Add one if is any error returned
       }
       if(total_errs > 0){
-        this->set_colour('r');
-        this->report_info(mk_str(total_errs)+" failed tests", mpi_info.rank);
-        this->set_colour();
+        set_colour(test_colours.fail);
+        my_print("\xe2\x9c\x97 ", true);
+        set_colour('*');
+        my_print(mk_str(total_errs)+" failed tests", mpi_info.rank);
       }else{
-        this->report_info("All tests passed", mpi_info.rank);
+        set_colour(test_colours.normal);
+        my_print("\xe2\x9c\x93 ", true);
+        set_colour('*');
+        my_print("All tests passed", mpi_info.rank);
       }
+      this->set_colour();
+
     };
 
     /** Set the verbosity of testing output, from 0 (minimal) to max_verbos.*/
@@ -414,9 +438,11 @@ namespace testbed{
 
   */
     if(!hasColour) return "";
-    
+    if(col >='A' and col <='Z') col += 32;
+    //ASCII upper to lower
     switch (col) {
       case 0:
+      case '0':
         return "\033[0m";
         break;//Redundant but clearer
       case 'r':
@@ -443,7 +469,23 @@ namespace testbed{
       case 'k':
         return "\033[30m";
         break;
-
+      case '*':
+      //bold
+        return "\033[1m";
+        break;
+      case '_':
+      //underline
+        return "\033[4m";
+        break;
+      case '?':
+      //blink. very annoying
+        return "\033[5m";
+        break;
+      case '$':
+      //reverse fore/back ground
+        return "\033[7m";
+        break;
+      
       default:
         return "";
     }
