@@ -77,8 +77,8 @@ class test_entity_second : public testbed::test_entity{
 };
 testbed::TEST_ERR test_entity_second::run(){
   report_info("Number is "+testbed::mk_str(number));
-  report_err(0);
-  return 0;
+  report_err(testbed::TEST_PASSED);
+  return testbed::TEST_PASSED;
 }
 REGISTER(second);
 
