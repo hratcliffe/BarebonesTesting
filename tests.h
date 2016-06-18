@@ -70,11 +70,13 @@ namespace testbed{
   const int TEST_WRONG_RESULT = 1;
   const int TEST_NULL_RESULT = 2;
   const int TEST_ASSERT_FAIL = 4;
-  const int TEST_USERDEF_ERR1 = 8;
-  const int TEST_USERDEF_ERR2 = 16;
-  const int TEST_USERDEF_ERR3 = 32;
-  const int TEST_USERDEF_ERR4 = 64;
-  const int err_tot = 8;
+  const int TEST_OTHER = 8;
+  const int TEST_USER_FAILED = 16;
+  const int TEST_USERDEF_ERR1 = 32;
+  const int TEST_USERDEF_ERR2 = 64;
+  const int TEST_USERDEF_ERR3 = 128;
+  const int TEST_USERDEF_ERR4 = 256;
+  const int max_err = 10;
   typedef int TEST_ERR;
   const calc_type PRECISION = 1e-10;/**< Constant for equality at normal precision i.e. from rounding errors etc*/
   const calc_type NUM_PRECISION = 1e-6;/**< Constant for equality at good numerical precision, e.g. from numerical integration over 100-1000 pts*/
@@ -83,9 +85,25 @@ namespace testbed{
   std::string filename = "tests.log";/**<Default test log file*/
   bool hasColour = false;/**< Flag for terminal colour use*/
 
-  const int err_codes[err_tot] ={TEST_PASSED, TEST_WRONG_RESULT, TEST_NULL_RESULT, TEST_ASSERT_FAIL, TEST_USERDEF_ERR1, TEST_USERDEF_ERR2, TEST_USERDEF_ERR3, TEST_USERDEF_ERR4};/**< List of error codes available*/
 
-  std::string err_names[err_tot]={"None", "Wrong result", "Invalid Null result", "Assignment or assertion failed", "", "", "", ""};/**< Names corresponding to error codes, which are reported in log files*/
+  typedef int TEST_ERR;
+  typedef const int USER_ERR;
+
+  int last_err = 6;
+
+  const int err_codes[max_err] ={TEST_PASSED, TEST_WRONG_RESULT, TEST_NULL_RESULT, TEST_ASSERT_FAIL, TEST_OTHER, TEST_USER_FAILED, TEST_USERDEF_ERR1, TEST_USERDEF_ERR2, TEST_USERDEF_ERR3, TEST_USERDEF_ERR4};/**< List of error codes available*/
+
+  std::string err_names[max_err]={"None", "Wrong result", "Invalid Null result", "Assignment or assertion failed", "Other error", "Failed to allocate errorcode", "", "", "", ""};/**< Names corresponding to error codes, which are reported in log files*/
+  
+  const USER_ERR add_err(const std::string text){
+    /**< Add a user-defined error message */
+    if(last_err >= max_err-1) return TEST_USER_FAILED;
+    err_names[last_err] = text;
+    last_err ++;
+    return err_codes[last_err - 1];
+  };
+  
+  
 
   inline void set_filename(std::string name){filename = name;}
   inline void set_mpi(mpi_info_struc mpi_info_in){mpi_info=mpi_info_in;}
@@ -201,9 +219,9 @@ namespace testbed{
     std::string name;/**< The name of the test, which will be reported in the log file*/
     test_entity(){parent = nullptr; name = "";}
     virtual ~test_entity(){;}
-    virtual int run()=0;/*Pure virtual because we don't want an instances of this template*/
+    virtual TEST_ERR run()=0;/*Pure virtual because we don't want an instances of this template*/
     void report_info(std::string info, int verb_to_print =1);
-    void report_err(int err);
+    void report_err(TEST_ERR err);
     virtual void setup(){;};
 
   };
@@ -267,10 +285,10 @@ namespace testbed{
   *
   * Converts error code to printable string, adds code for reference and adds test name. Note code is bitmask and additional errors are appended together
   */
-    std::string get_printable_error(int err, int test_id){
+    std::string get_printable_error(TEST_ERR err, int test_id){
       std::string err_string="";
       if(err!=TEST_PASSED){
-        for(int i=err_tot-1; i>0; --i){
+        for(int i=max_err-1; i>0; --i){
           //Run most to least significant
           if((err & err_codes[i]) == err_codes[i]){
             err_string +=err_names[i] + ", ";
@@ -318,7 +336,7 @@ namespace testbed{
     /** \brief Log error
     *
     * Logs error text corresponding to code err for test defined by test_id. Errors are always recorded.*/
-    void report_err(int err, int test_id=-1){
+    void report_err(TEST_ERR err, int test_id=-1){
       if(test_id == -1) test_id = current_test_id;
 //      if(err ==TEST_PASSED) set_colour('b');
 //      else set_colour('r');

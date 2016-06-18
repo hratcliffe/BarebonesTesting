@@ -15,6 +15,11 @@
 
 std::vector<double> cubic_solve(calc_type an, calc_type bn, calc_type cn);
 
+testbed::USER_ERR my_err = testbed::add_err("My error!");
+//Defining a new error. USER_ERR are constant and cannot be assigned to
+//They can be initialised like this
+testbed::USER_ERR my_err2 = testbed::add_err("Different error");
+
 class test_entity_sample : public testbed::test_entity{
   private:
   public:
@@ -22,11 +27,11 @@ class test_entity_sample : public testbed::test_entity{
     name = "sample test";
   }
   virtual ~test_entity_sample(){;};
-  virtual int run();
+  virtual testbed::TEST_ERR run();
 
 };
 
-int test_entity_sample::run(){
+testbed::TEST_ERR test_entity_sample::run(){
   testbed::TEST_ERR err=testbed::TEST_PASSED;
   report_info("Checking cubic roots");
 
@@ -63,14 +68,14 @@ class test_entity_second : public testbed::test_entity{
     name = "second";
   }
   virtual ~test_entity_second(){;};
-  virtual int run();
+  virtual testbed::TEST_ERR run();
   int number;
   void setup(int a){number=a;}
   void setup(int a, std::string b){number=a;}
   void setup(){name="still second";}
 
 };
-int test_entity_second::run(){
+testbed::TEST_ERR test_entity_second::run(){
   report_info("Number is "+testbed::mk_str(number));
   report_err(0);
   return 0;
@@ -84,11 +89,11 @@ class test_entity_fail : public testbed::test_entity{
     name = "fails";
   }
   virtual ~test_entity_fail(){;};
-  virtual int run();
+  virtual testbed::TEST_ERR run();
 };
-int test_entity_fail::run(){
-  report_err(testbed::TEST_WRONG_RESULT);
-  return testbed::TEST_WRONG_RESULT;
+testbed::TEST_ERR test_entity_fail::run(){
+  report_err(testbed::TEST_WRONG_RESULT | my_err);
+  return testbed::TEST_WRONG_RESULT | my_err;
 }
 REGISTER(fail);
 
@@ -99,11 +104,11 @@ class test_entity_setup : public testbed::test_entity{
     name = "setup";
   }
   virtual ~test_entity_setup(){;};
-  virtual int run();
+  virtual testbed::TEST_ERR run();
   bool isset = false;
   void setup(){isset=true;}
 };
-int test_entity_setup::run(){
+testbed::TEST_ERR test_entity_setup::run(){
   report_info("Isset is "+testbed::mk_str(isset));
   report_err(testbed::TEST_PASSED);
   return testbed::TEST_PASSED;
@@ -117,11 +122,11 @@ class test_entity_setup2 : public testbed::test_entity{
     name = "setup2";
   }
   virtual ~test_entity_setup2(){;};
-  virtual int run();
+  virtual testbed::TEST_ERR run();
   bool isset = false;
   void setup(bool set){isset=set;}
 };
-int test_entity_setup2::run(){
+testbed::TEST_ERR test_entity_setup2::run(){
   report_info("Isset is "+testbed::mk_str(isset));
   report_err(testbed::TEST_PASSED);
   return testbed::TEST_PASSED;
