@@ -6,7 +6,58 @@
 // Modified 15/6/2016
 //
 //
-#ifdef RUN_TESTS_AND_EXIT
+namespace testbed{
+//Doxygen inside namespace to shorten Doxygen name resolution
+/*! \mainpage notitle
+\section Purp Purpose
+This is a very small testing rig for semi-automatic, non-specific testing. Test objects are created by name and can then be run in a block. Error codes, MPI aware error logging and some ANSI compatible colourising routines are provided. 
+\section basic Basic useage
+Outline code is available in main.cpp Start by creating a tests object and setting-up the logfile:
+
+  testbed::tests * mytestbed = new testbed::tests();
+
+  testbed::set_filename("mylog.log");
+
+  mytestbed->\ref tests::setup_tests "setup_tests()";
+
+Add some tests to run:
+
+  mytestbed->\ref tests::add "add(\"sample\")";
+
+  mytestbed->\ref tests::add "add(\"fail\")";
+
+Run them and clean up:
+
+  mytestbed->\ref tests::run_tests "run_tests()";
+
+  delete mytestbed;
+
+mylog.log now contains all test results and additional information.
+
+\section Log Output
+Simple output control is provided via \ref test_entity::report_info "report_info" and \ref test_entity::report_err "report_err" and also via the direct my_print() functions.
+\subsection MPI MPI
+Very basic MPI support is provided. Logging can be done by all ranks, or by only one, rank 0 by default. To enable this, create a testbed::mpi_info_struc and set the two fields, rank and n_procs.
+
+\subsection Colour Colour
+
+\subsection Verb Verbosity
+
+\section Test Writing a test
+
+\section Setup Using a setup function
+
+\subsection Overload What if my setup function is overloaded
+
+\section Macros What are all these macros doing?
+
+
+
+
+
+@date 18/Jun 2016 @author H Ratcliffe
+ */
+}
 
 #ifndef _tests_h
 #define _tests_h
@@ -19,35 +70,31 @@
 #include <memory>
 #include <map>
 
-#define calc_type double
-
 #define PASTE(x, y) x ## y
 #define REGISTER(x) static testbed::Registrar<test_entity_ ## x> registrar_ ## x( # x)
-//Expands out the correct syntax for registering function with testbed
+/**<Expands out the correct syntax for registering function with testbed*/
 //When this breaks, google "most vexing parse"
 
 
 #define ADDABLE_FN_TYPE(x) std::function<void(test_entity_ ## x *)>
 #define ADDABLE_FN_NOARG(x) std::bind(&test_entity_ ##x, std::placeholders::_1)
 #define ADDABLE_FN(x, ...) std::bind(&test_entity_ ##x, std::placeholders::_1, __VA_ARGS__)
-//These expand out the correct syntax for binding arguments to a setup function
+/**<These expand out the correct syntax for binding arguments to a setup function*/
 
 #define RESOLVED_FN_TYPE(x, y) void (test_entity_ ##x ::* y)
 #define RESOLVED_FN(x, y) &test_entity_##x :: y
 #define MEMBER_BIND(x, ...) std::bind( x ,std::placeholders::_1, __VA_ARGS__)
 #define MEMBER_BIND_NOARG(x) std::bind( x ,std::placeholders::_1)
-//These expand out the syntax for resolving overloads and binding arguments
-
+/**<These expand out the syntax for resolving overloads and binding arguments*/
 
 struct mpi_info_struc{
   int rank;
   int n_procs;
   bool operator ==(const mpi_info_struc& rhs) const { return rhs.rank == this->rank && rhs.n_procs == this->n_procs;}
 };
-/** Structure holding minimal mpi info*/
+/**< Structure holding minimal mpi info*/
 
-const struct mpi_info_struc mpi_info_null = {0, 0};
-/** Null MPI struct */
+const struct mpi_info_struc mpi_info_null = {0, 0}; /**< \internal Null MPI struct */
 
 namespace testbed{
 /** Namespace for all the testbed code*/
@@ -59,13 +106,14 @@ namespace testbed{
     char normal;
     
   };
-  /** Colours for printing according to function*/
+  /**< \internal Colours for printing according to function*/
+  
   struct colours test_colours={'R', 'g', 'b', '0'};
-  /** Default colours */
+  /**< \internal Default colours */
 
   mpi_info_struc mpi_info = mpi_info_null;
-  /** Default MPI struct is null, i.e no restriction on printing */
-
+  /**< \internal Default MPI struct. This is null, i.e. does not distinguish between processors*/
+  
   const int TEST_PASSED = 0;
   const int TEST_WRONG_RESULT = 1;
   const int TEST_NULL_RESULT = 2;
@@ -77,17 +125,18 @@ namespace testbed{
   const int TEST_USERDEF_ERR3 = 128;
   const int TEST_USERDEF_ERR4 = 256;
   const int max_err = 10;
-  typedef int TEST_ERR;
-  const calc_type PRECISION = 1e-10;/**< Constant for equality at normal precision i.e. from rounding errors etc*/
-  const calc_type NUM_PRECISION = 1e-6;/**< Constant for equality at good numerical precision, e.g. from numerical integration over 100-1000 pts*/
-  const calc_type LOW_PRECISION = 5e-3;/**< Constant for equality at low precision, i.e. different approximations to an expression*/
+  /* Error codes list */
+
+  const double PRECISION = 1e-10;/**< Constant for equality at normal precision i.e. from rounding errors etc*/
+  const double NUM_PRECISION = 1e-6;/**< Constant for equality at good numerical precision, e.g. from numerical integration over 100-1000 pts*/
+  const double LOW_PRECISION = 5e-3;/**< Constant for equality at low precision, i.e. different approximations to an expression*/
   const int max_verbos = 4;
   std::string filename = "tests.log";/**<Default test log file*/
-  bool hasColour = false;/**< Flag for terminal colour use*/
+  bool hasColour = false;/**< \internal Flag for terminal colour use*/
 
 
-  typedef int TEST_ERR;
-  typedef const int USER_ERR;
+  typedef int TEST_ERR;/**< Type for error codes*/
+  typedef const int USER_ERR; /**<Special type for defining a new error code */
 
   int last_err = 6;
 
@@ -96,7 +145,10 @@ namespace testbed{
   std::string err_names[max_err]={"None", "Wrong result", "Invalid Null result", "Assignment or assertion failed", "Other error", "Failed to allocate errorcode", "", "", "", ""};/**< Names corresponding to error codes, which are reported in log files*/
   
   const USER_ERR add_err(const std::string text){
-    /**< Add a user-defined error message */
+    /** \brief Add a user-defined error message
+    *
+    *Adds an error message to the defined set. There is a limited number (currently 4) of additional codes. @param text The printable message associated with this error @return The new error code, or if the maximum has been reached, a TEST_USER_FAILED error.
+    */
     if(last_err >= max_err-1) return TEST_USER_FAILED;
     err_names[last_err] = text;
     last_err ++;
@@ -105,14 +157,27 @@ namespace testbed{
   
   
 
-  inline void set_filename(std::string name){filename = name;}
+  inline void set_filename(std::string name){filename = name;}/**< Set the output filename. Default value is "tests.log". */
   inline void set_mpi(mpi_info_struc mpi_info_in){mpi_info=mpi_info_in;}
+  /** \brief Setup MPI
+  *
+  * Logging and print functions by default print only on the 0 ranked processor. Use this function to set the mpi_info for each processor. A testbed::mpi_info_struc has two fields, n_procs for the total number of processors, and rank, for each processor's rank.
+  */
 
-  //Wrapper functions ensuring only one MPI rank writes
-  inline void my_print(std::string text, int rank, int rank_to_write=0, bool noreturn=false){
+  inline void set_colour(std::string function, char colour){
+    /** \brief Set colours used
+    *
+    * Sets the output colour for given useage to colour. Applies only if terminal supports colour. Functions are: pass, fail, info, normal used to report test passes, test failures, additional info via report_info and the normal mode. Available colours are rgb, cmyk and white.
+    */
+  
+  
+  };
+
+
+  inline void my_print(std::string text, int rank_to_write=0, int rank=mpi_info.rank, bool noreturn=false){
   /** \brief Write output
   *
-  * Currently dump to term. Perhaps also to log file. Accomodates MPI also. Set rank_to_write to -1 to dump from all. Default value is 0
+  *MPI aware writing routine. Writes string text to stdout, only from processor with rank equal rank_to_write. This defaults to 0. If mpi_info has not been set, via set_mpi, ALL processors will print, in unspecified order.
   */
     if(rank == rank_to_write || rank_to_write == -1){
       std::cout<< text;
@@ -121,10 +186,10 @@ namespace testbed{
     }
 
   }
-  inline void my_print(std::fstream * handle, std::string text, int rank, int rank_to_write=0, bool noreturn=false){
+  inline void my_print(std::fstream * handle, std::string text, int rank_to_write=0, int rank=mpi_info.rank, bool noreturn=false){
   /** \brief Write output
   *
-  * Currently dump to term. Perhaps also to log file. Accomodates MPI also. Set rank_to_write to -1 to dump from all. Default value is 0
+  *MPI aware writing routine. Writes string text to given file, only from processor with rank equal rank_to_write. This defaults to 0. If mpi_info has not been set, via set_mpi, ALL processors will print, in unspecified order.
   */
     if((rank == rank_to_write || rank_to_write == -1) && handle!=nullptr){
       *handle<<text;
@@ -138,44 +203,16 @@ namespace testbed{
     }
 
   }
-  inline void my_print(std::string text, bool noreturn=0){
-      std::cout<< text;
-      if(!noreturn) std::cout<<std::endl;
-}
-  inline void my_print(std::fstream * handle, std::string text){
-    if(handle!=nullptr){
-      *handle<<text<<std::endl;
-    }else{
-      std::cout<<text<<std::endl;
-    }
-
-  }
-
-   void trim_string(std::string &str, char ch=' '); /**< Trim all leading/trailing ch's from str*/
-
-//#ifdef USECPP11
-//We have to_string, just wrap that for numeric types
+  void trim_string(std::string &str, char ch=' '); /**< Trim all leading/trailing ch's from str*/
 
   template <typename T> std::string mk_str(T input){
     return std::to_string(input);
   }
+  /* Wrap C++11 to_string to be consistent with our overloaded mk_str*/
 
-/*  template <typename T> std::string mk_str(T input, bool noexp){
-    return std::to_string(input);
-  }
+  /**< Make string from input. Note has overloads where one can specify noexp=true to prevent using scientific form output*/
 
-//#else
-  inline std::string mk_str(int i){
-
-    char buffer[25];
-    std::sprintf(buffer, "%i", i);
-    std::string ret = buffer;
-    return ret;
-    
-  }*/
-  //Is sometimes useful to print a number in entirety, rather than using SciForm
   inline std::string mk_str(double i, bool noexp=0){
-
     char buffer[25];
     if(noexp) std::snprintf(buffer, 25, "%f", i);
     else std::snprintf(buffer, 25, "%e", i);
@@ -190,8 +227,8 @@ namespace testbed{
   }
   inline std::string mk_str(long double i, bool noexp){return mk_str((double) i, noexp);};
   inline std::string mk_str(float i, bool noexp){return mk_str((double) i, noexp);};
+  /* Some overloads to mk_str for non-scientific output, and for bool type*/
 
-//#endif
 
   inline void check_term(){
     /** \brief Check terminal capabilites
@@ -206,28 +243,30 @@ namespace testbed{
   }
 
 
+  class tests;
+
   /**\brief Testing instance
   *
-  *Consists of at least a constructor doing any setup required, a name string for output id, a function run() taking no parameters which performs the necessary test and a destructor doing cleanup.
+  *Consists of at least a constructor doing any setup required, a name string for output id, a function run() taking no parameters which performs the necessary test and a destructor doing cleanup. Ant additional methods may be included. In particular, setup methods with any signature can be run when adding tests. See tests:add
   */
-  class tests;
   class test_entity{
   private:
   public:
 
-    tests * parent;
+    tests * parent;/** \internal Parent tests object, for error reporting etc */
     std::string name;/**< The name of the test, which will be reported in the log file*/
     test_entity(){parent = nullptr; name = "";}
     virtual ~test_entity(){;}
-    virtual TEST_ERR run()=0;/*Pure virtual because we don't want an instances of this template*/
+    virtual TEST_ERR run()=0;/**< Run method must have this signature. \internal Pure virtual because we don't want an instances of this template*/
     void report_info(std::string info, int verb_to_print =1);
     void report_err(TEST_ERR err);
-    virtual void setup(){;};
 
   };
 
   /* The factory implmentation is adapted from http://www.codeproject.com/Articles/567242/AplusC-b-bplusObjectplusFactory*/
-  class test_factory{
+  /** \internal stuff*/
+  class test_factory{/**< \internal*/
+  
   friend class tests;
   private:
     std::map<std::string, std::function<test_entity*(void)> > factoryFunctionRegistry;
@@ -272,8 +311,12 @@ namespace testbed{
   /**\brief Test controller
   *
   *Controls running of tests and their logging etc
+  */
+
+  /*
   *To add a test, do the following:
-  *Descend an object from test_entity which has at least a constructor doing any setup required, a name string for output id, a function run taking no parameters which performs the necessary test and a destructor doing cleanup. Add any other member variables or functions required, including their headers also. In tests::setup_tests create an instance of your class as test_obj = new your_class() and then add your test to the remit using add_test(test_obj); Alternately make the instance and use the global test_bed using test_bed->add(your pntr) from anywhere.
+  *Descend an object from test_entity which has at least a constructor doing any setup required, a name string for output id, a function run taking no parameters which performs the necessary test and a destructor doing cleanup. Add any other member variables or functions required, including their headers also.
+  In tests::setup_tests create an instance of your class as test_obj = new your_class() and then add your test to the remit using add_test(test_obj); Alternately make the instance and use the global test_bed using test_bed->add(your pntr) from anywhere.
   *To add errors, add the message into the blank spaces in the list below, err_names, and declare a const int of desired name aliased to TEST_USERDEF_ERR* where * = 1-4
   *To report the errors by code, call test_bed->report_err(err); To report other salient information use test_bed->report_info(info, verbosity) where the second parameter is an integer describing the verbosity setting at which to print this info (0=always, the larger int means more and more detail).
   */
@@ -306,18 +349,6 @@ namespace testbed{
     int verbosity;/**< Verbosity level of output*/
   public:
 
-  /*  template <typename T> void configure_test(std::string name, std::function<void(T)> myfunc){
-      //apply a setup function
-      //As a test, create a name and call the function
-      std::shared_ptr<test_entity> eg = testbed::test_factory::instance()->create(name);
-      //<dynamic_cast eg->myfunc;
-//      test_entity * this_is_terrible = eg.get();
-      T oh_gods_the_humanity = dynamic_cast<T> (eg.get());
-//      myfunc(dynamic_cast<test_entity *> (eg) );
-      myfunc(oh_gods_the_humanity);
-
-    }*/
-
     template <typename T> void add(std::string name, std::function<void(T)> myfunc){
       //apply a setup function
       //As a test, create a name and call the function
@@ -343,8 +374,8 @@ namespace testbed{
       if(err ==TEST_PASSED) set_colour(test_colours.pass);
       else set_colour(test_colours.fail);
 
-      my_print(outfile, get_printable_error(err, test_id), mpi_info.rank);
-      my_print(nullptr, get_printable_error(err, test_id), mpi_info.rank);
+      my_print(outfile, get_printable_error(err, test_id), 0, mpi_info.rank);
+      my_print(nullptr, get_printable_error(err, test_id), 0, mpi_info.rank);
       set_colour();
   }
 
@@ -356,8 +387,8 @@ namespace testbed{
       set_colour(test_colours.info);
       if(test_id == -1) test_id = current_test_id;
       if(verb_to_print <= this->verbosity){
-        my_print(outfile, info, mpi_info.rank);
-        my_print(nullptr, info, mpi_info.rank);
+        my_print(outfile, info, 0, mpi_info.rank);
+        my_print(nullptr, info, 0, mpi_info.rank);
       }
       set_colour();
   };
@@ -375,7 +406,7 @@ namespace testbed{
       outfile = new std::fstream();
       outfile->open(filename.c_str(), std::ios::out);
       if(!outfile->is_open()){
-        my_print("Error opening "+filename, mpi_info.rank);
+        my_print("Error opening "+filename, 0, mpi_info.rank);
         //can't log so return with empty test list
         return;
       }
@@ -397,11 +428,11 @@ namespace testbed{
     /** Delete test objects */
     void cleanup_tests(){
       if(outfile->is_open()){
-        my_print("Testing complete and logged in " +filename, mpi_info.rank);
+        my_print("Testing complete and logged in " +filename, 0, mpi_info.rank);
         outfile->close();
       }else{
         set_colour(test_colours.fail);
-        my_print("No logfile generated", mpi_info.rank);
+        my_print("No logfile generated", 0, mpi_info.rank);
         set_colour();
       }
       delete outfile;
@@ -443,7 +474,9 @@ namespace testbed{
     
   };
 
+  /** \copydoc tests::report_info */
   inline void test_entity::report_info(std::string info, int verb_to_print){parent->report_info(info, verb_to_print);};
+  /** \copydoc tests::report_err */
   inline void test_entity::report_err(int err){parent->report_err(err);};
 
 
@@ -513,4 +546,4 @@ namespace testbed{
 };
 
 #endif
-#endif
+//#endif
