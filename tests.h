@@ -37,9 +37,10 @@ mylog.log now contains all test results and additional information.
 \section Log Output
 Simple output control is provided via \ref test_entity::report_info "report_info" and \ref test_entity::report_err "report_err" and also via the direct my_print() functions.
 \subsection MPI MPI
-Very basic MPI support is provided. Logging can be done by all ranks, or by only one, rank 0 by default. To enable this, create a testbed::mpi_info_struc and set the two fields, rank and n_procs.
+Very basic MPI support is provided. Logging can be done by all ranks, or by only one, rank 0 by default. To enable this, create a testbed::mpi_info_struc and set the two fields, rank and n_procs. See ::testbed_example::setup_MPI().
 
 \subsection Colour Colour
+For ANSI compatible terminals we can colourise output. set_colour() allows to set any of the standard 8 colour set, RGB, CMYK plus white. A few attributes such as bold are also supported. See
 
 \subsection Verb Verbosity
 
@@ -159,7 +160,7 @@ namespace testbed{
 
   inline void set_filename(std::string name){filename = name;}/**< Set the output filename. Default value is "tests.log". */
   inline void set_mpi(mpi_info_struc mpi_info_in){mpi_info=mpi_info_in;}
-  /** \brief Setup MPI
+  /**< \brief Setup MPI
   *
   * Logging and print functions by default print only on the 0 ranked processor. Use this function to set the mpi_info for each processor. A testbed::mpi_info_struc has two fields, n_procs for the total number of processors, and rank, for each processor's rank.
   */
@@ -467,7 +468,15 @@ namespace testbed{
     /** Set the verbosity of testing output, from 0 (minimal) to max_verbos.*/
     void set_verbosity(int verb){if((verb > 0)) this->verbosity = std::max(verb, max_verbos);};
 
-    /** \brief Set output text colour*/
+
+    /**
+     * @class dummy_colour
+     * Available colour codes are RGB, CMYK and W(hite) plus * (bold) _ (underlined) ? (blink, irritating and not supported on some terminals and $ (reverse foreground and background). A call with no arguments, or with 0 or '0' reset to default.
+     */
+
+    /** \brief Set output text colour/style
+    *
+    * \copydoc dummy_colour    */
     void set_colour(char col=0){my_print(this->get_color_escape(col), mpi_info.rank, 0, true);};
 
     std::string get_color_escape(char col=0);
@@ -482,11 +491,8 @@ namespace testbed{
 
   //Break this out because it's giant case
   inline std::string tests::get_color_escape(char col){
-  /** \brief Get color string
-  *
-  * Returns the terminal escape string to set given colour
-  *Set terminal output colour using std escape sequences. Accepts no argument to return to default, or rgb, cmyk and white to test text colour. NB technically not MPI safe. Use sparingly to highlight important information.
-
+  /** \brief
+  *\copydoc dummy_colour This returns the terminal escape string to set given colour.
   */
     if(!hasColour) return "";
     if(col >='A' and col <='Z') col += 32;

@@ -11,9 +11,15 @@
 #include <math.h>
 #include <cmath>
 
+
 #define calc_type double
 
 std::vector<double> cubic_solve(calc_type an, calc_type bn, calc_type cn);
+
+namespace testbed_example{
+
+mpi_info_struc setup_MPI(int argc, char ** argv);
+void example_testing(testbed::tests * mytestbed);
 
 testbed::USER_ERR my_err = testbed::add_err("My error!");
 //Defining a new error. USER_ERR are constant and cannot be assigned to
@@ -132,11 +138,34 @@ testbed::TEST_ERR test_entity_setup2::run(){
   return testbed::TEST_PASSED;
 }
 REGISTER(setup2);
+}
 
 int main(int argc, char ** argv){
 
-  int ierr, rank, n_procs;
+  testbed::tests * mytestbed = new testbed::tests();
+
 #ifdef USE_MPI
+  mpi_info_struc mpi_info = setup_MPI(argc, argv);
+  testbed::set_mpi(mpi_info);
+#endif
+
+  testbed_example::example_testing(mytestbed);
+  
+  delete mytestbed;
+
+#ifdef USE_MPI
+  MPI_Finalize();
+#endif
+}
+
+mpi_info_struc setup_MPI(int argc, char ** argv){
+/** \brief Example of MPI setup
+*
+* Creates an mpi_info_struc and sets n_procs and rank according to MPI library functions
+*/
+#ifdef USE_MPI
+
+  int ierr, rank, n_procs;
   ierr = MPI_Init(&argc, &argv);
   //Note any other command line arg processing should account for this...
 
@@ -146,12 +175,17 @@ int main(int argc, char ** argv){
   mpi_info_struc mpi_info;
   mpi_info.rank = rank;
   mpi_info.n_procs = n_procs;
-#endif
-  testbed::tests * mytestbed = new testbed::tests();
 
-#ifdef USE_MPI
-  testbed::set_mpi(mpi_info);
+  return mpi_info;
+#else
+  return mpi_info_null;
 #endif
+
+}
+
+namespace testbed_example{
+
+void example_testing(testbed::tests * mytestbed){
   testbed::set_filename("testing.log");
   mytestbed->setup_tests();
 
@@ -185,12 +219,7 @@ int main(int argc, char ** argv){
 
   testbed::my_print("Running tests");
   mytestbed->run_tests();
-  
-  delete mytestbed;
 
-#ifdef USE_MPI
-  MPI_Finalize();
-#endif
 }
 /** Adding tests to the remit
 *
@@ -207,7 +236,7 @@ So we first do void (test_entity_second::*tmpfn)(int) = &test_entity_second::set
 to create tmpfn with the correct signature, and then bind to the parameters of tmpfn like this myfun = std::bind(tmpfn, std::placeholders::_1, 1); Finally we call add("name", myfun) as before. Macros to build this syntax are used like this:   RESOLVED_FN_TYPE(name, tmpfunctionname)(argument specification) = RESOLVED_FN(name, functionname); myfun = MEMBER_BIND[_NOARG](tmpfunctionname [, arg list]);
 
 */
-
+}
 std::vector<double> cubic_solve(calc_type an, calc_type bn, calc_type cn){
 /** \brief Finds roots of cubic x^3 + an x^2 + bn x + cn = 0
 *
