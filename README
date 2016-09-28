@@ -1,0 +1,2 @@
+Some very simple io and error helper functions for testing of C++ scientific code. MPI aware for parallel work.<br>
+Language: C++
