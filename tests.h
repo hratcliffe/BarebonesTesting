@@ -365,17 +365,17 @@ namespace testbed{
     *
     *Adds a previously registered test by name, calling the given setup function in the process.
     */
-      //As a test, create a name and call the function
       std::shared_ptr<test_entity> eg = testbed::test_factory::instance()->create(name);
-      //<dynamic_cast eg->myfunc;
-//      test_entity * this_is_terrible = eg.get();
-      T oh_gods_the_humanity = dynamic_cast<T> (eg.get());
-//      myfunc(dynamic_cast<test_entity *> (eg) );
-      myfunc(oh_gods_the_humanity);
-//      myfunc(eg.get());
-      eg->parent = this;
-      test_list.push_back(eg);
-
+      if(eg){
+        //Unpack raw pointer and invoke myfunc on eg
+        T test_instance = dynamic_cast<T> (eg.get());
+        myfunc(test_instance);
+        eg->parent = this;
+        //Add now set-up test to list
+        test_list.push_back(eg);
+      }else{
+        my_print("No test "+name);
+      }
     }
     void add(std::string name){
     /** \brief Add test to remit
