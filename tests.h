@@ -387,6 +387,19 @@ namespace testbed{
       test_list.push_back(eg);
 
     }
+    void add(std::string name){
+    /** \brief Add test to remit
+    *
+    *Adds a previously registered test by name
+    */
+      std::shared_ptr<test_entity> eg = testbed::test_factory::instance()->create(name);
+      if(eg){
+        eg->parent = this;
+        test_list.push_back(eg);
+      }else{
+        my_print("No test "+name);
+      }
+    }
 
     /** \brief Log error
     *
@@ -437,11 +450,6 @@ namespace testbed{
       //set_colour(test_colours.normal);
     }
 
-    void add(std::string name){
-      std::shared_ptr<test_entity> eg = testbed::test_factory::instance()->create(name);
-      eg->parent = this;
-      test_list.push_back(eg);
-    }
     void print_available(){
     /** Print names of all registered tests */
       auto registry = testbed::test_factory::instance()->factoryFunctionRegistry;
