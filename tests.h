@@ -32,7 +32,7 @@ Run them and clean up:
 
   delete mytestbed;
 
-mylog.log now contains all test results and additional information.
+mylog.log now contains all test results and additional information. See the examples in testbed_example::example_testing() for more.
 
 \section Log Output
 Simple output control is provided via \ref test_entity::report_info "report_info" and \ref test_entity::report_err "report_err" and also via the direct my_print() functions.
@@ -40,20 +40,27 @@ Simple output control is provided via \ref test_entity::report_info "report_info
 Very basic MPI support is provided. Logging can be done by all ranks, or by only one, rank 0 by default. To enable this, create a testbed::mpi_info_struc and set the two fields, rank and n_procs. See ::testbed_example::setup_MPI().
 
 \subsection Colour Colour
-For ANSI compatible terminals we can colourise output. set_colour() allows to set any of the standard 8 colour set, RGB, CMYK plus white. A few attributes such as bold are also supported. See
+For ANSI compatible terminals we can colourise output. set_colour() allows to set any of the standard 8 colour set, RGB, CMYK plus white. A few attributes such as bold are also supported. See tests::set_colour().
 
 \subsection Verb Verbosity
+Error messages are always printed but supplementary information via test_entity::report_info() can be given a verbosity level. There are n levels from 0 (minimal) to testbed::max_verbos (maximal). This is 4 by default but can be changed by editing file. The working level of verbosity is set via tests::set_verbosity between 0 and testbed::max_verbos. See ::testbed_example::test_entity_fail::run() for examples.
 
 \section Test Writing a test
+An example test is given in ::testbed_example::test_entity_sample Here we solve some cubics and do basic error reporting etc. Note we include math header to use this. We can explicitly allocate memory in the test constructor, and free it in the destructor, or do both of these in the run method. run() may call other local or external methods etc.
 
 \section Setup Using a setup function
+Running the same test using different parameters is acheived by adding the test along with a setup function. An example without arguments is given in test_example::test_entity_setup and one with in test_example::test_entity_setup2. We use some macros (see \ref Macros) to bind the arguments with the setup function and pass this as well as the function name to testbed::tests::add. 
+\copydoc dummy_simple
+See also testbed_example::example_testing().
+
 
 \subsection Overload What if my setup function is overloaded
+If the setup function has overloads with different number/type of arguments, there is slightly more complicated procedure, to resolve the correct overload when we add arguments. 
+\copydoc dummy_overload
+See also testbed_example::example_testing().
 
 \section Macros What are all these macros doing?
-
-
-
+The previous section involves using several macros. These are a shortcut to writing out the syntax, and are NOT nest-safe. A makefile recipe, preprocess, is given to expand these by preprocessing JUST the relevant file and the tests.h header. Alternately, use the expanded syntax directly. 
 
 
 @date 18/Jun 2016 @author H Ratcliffe
@@ -169,7 +176,7 @@ namespace testbed{
     /** \brief Set colours used
     *
     * Sets the output colour for given useage to colour. Applies only if terminal supports colour. Functions are: pass, fail, info, normal used to report test passes, test failures, additional info via report_info and the normal mode. Available colours are rgb, cmyk and white.
-    */
+    \todo Complete */
   
   
   };
@@ -264,15 +271,17 @@ namespace testbed{
 
   };
 
-  /* The factory implmentation is adapted from http://www.codeproject.com/Articles/567242/AplusC-b-bplusObjectplusFactory*/
-  /** \internal stuff*/
-  class test_factory{/**< \internal*/
+  class test_factory{
+  /** \internal \brief Factory producing test instances
+  *
+  *Adapted from http://www.codeproject.com/Articles/567242/AplusC-b-bplusObjectplusFactory
+  */
   
   friend class tests;
   private:
     std::map<std::string, std::function<test_entity*(void)> > factoryFunctionRegistry;
   public:
-
+    /** \internal Register a test_entity constructor*/
     void registerFactoryFunction(std::string name, std::function<test_entity*(void)> classFactoryFunction){ factoryFunctionRegistry[name] = classFactoryFunction;}
     static test_factory * instance();
     std::shared_ptr<test_entity> create(std::string name);
@@ -299,6 +308,8 @@ namespace testbed{
   
   template<class T>
   class Registrar {
+  /** \internal Registrar calls register method of test_factory to do the actual registering. @see REGISTER
+  */
   public:
       Registrar(std::string name)
       {
@@ -351,7 +362,10 @@ namespace testbed{
   public:
 
     template <typename T> void add(std::string name, std::function<void(T)> myfunc){
-      //apply a setup function
+    /** \brief Add test to remit
+    *
+    *Adds a previously registered test by name, calling the given setup function in the process.
+    */
       //As a test, create a name and call the function
       std::shared_ptr<test_entity> eg = testbed::test_factory::instance()->create(name);
       //<dynamic_cast eg->myfunc;
@@ -382,7 +396,7 @@ namespace testbed{
 
     /** \brief Log other test info
     *
-    *Records string info to the tests.log file and to screen, according to requested verbosity.
+    *Records string info to the tests.log file and to screen, according to requested verbosity. @param info The text to report @param verb_to_print verbosity level at which to print this info @param test_id
     */
     void report_info(std::string info, int verb_to_print = 1, int test_id=-1){
       set_colour(test_colours.info);
@@ -465,13 +479,13 @@ namespace testbed{
 
     };
 
-    /** Set the verbosity of testing output, from 0 (minimal) to max_verbos.*/
+    /** Set the verbosity of testing output, from 0 (minimal) to max_verbos. @see report_info*/
     void set_verbosity(int verb){if((verb > 0)) this->verbosity = std::max(verb, max_verbos);};
 
 
     /**
      * @class dummy_colour
-     * Available colour codes are RGB, CMYK and W(hite) plus * (bold) _ (underlined) ? (blink, irritating and not supported on some terminals and $ (reverse foreground and background). A call with no arguments, or with 0 or '0' reset to default.
+     * Available colour codes are RGB, CMYK and W(hite) plus * (bold) _ (underlined) ? (blink, irritating and not supported on some terminals) and $ (reverse foreground and background). A call with no arguments, or with 0 or '0' reset to default.
      */
 
     /** \brief Set output text colour/style
@@ -552,4 +566,3 @@ namespace testbed{
 };
 
 #endif
-//#endif

@@ -27,6 +27,7 @@ testbed::USER_ERR my_err = testbed::add_err("My error!");
 testbed::USER_ERR my_err2 = testbed::add_err("Different error");
 
 class test_entity_sample : public testbed::test_entity{
+/** */
   private:
   public:
   test_entity_sample(){
@@ -58,7 +59,7 @@ testbed::TEST_ERR test_entity_sample::run(){
       
     }
   }
-  report_info("Cubic roots OK");
+  if(err == testbed::TEST_PASSED) report_info("Cubic roots OK");
 
   report_err(err);
   return err;
@@ -68,6 +69,8 @@ testbed::TEST_ERR test_entity_sample::run(){
 REGISTER(sample);
 
 class test_entity_second : public testbed::test_entity{
+/** */
+
   private:
   public:
   test_entity_second(){
@@ -89,6 +92,8 @@ testbed::TEST_ERR test_entity_second::run(){
 REGISTER(second);
 
 class test_entity_fail : public testbed::test_entity{
+/** */
+
   private:
   public:
   test_entity_fail(){
@@ -98,12 +103,24 @@ class test_entity_fail : public testbed::test_entity{
   virtual testbed::TEST_ERR run();
 };
 testbed::TEST_ERR test_entity_fail::run(){
+/**\brief All sort of error code examples! 
+*
+* Report_err and report_info determine output. NB report_err prints an error code when the test is run. The return value of this function is used to add up the number of failing tests for the final report. Errors are combined with | (pipe, or). Info can be conditionally reported, and/or reported according to the current level of output verbosity. 
+*/
+  testbed::TEST_ERR err = testbed::TEST_PASSED;
+  err |= testbed::TEST_WRONG_RESULT;
+  report_info("This is always reported", 0);
+  if(err != testbed::TEST_PASSED) report_info("This conditionally reported", 2);
+
   report_err(testbed::TEST_WRONG_RESULT | my_err);
+  report_err(my_err2);
   return testbed::TEST_WRONG_RESULT | my_err;
 }
 REGISTER(fail);
 
 class test_entity_setup : public testbed::test_entity{
+/** */
+
   private:
   public:
   test_entity_setup(){
@@ -122,6 +139,8 @@ testbed::TEST_ERR test_entity_setup::run(){
 REGISTER(setup);
 
 class test_entity_setup2 : public testbed::test_entity{
+/** */
+
   private:
   public:
   test_entity_setup2(){
@@ -221,8 +240,14 @@ void example_testing(testbed::tests * mytestbed){
   mytestbed->run_tests();
 
 }
-/** Adding tests to the remit
+/**< Adding tests to the remit
 *
+*\copydoc dummy_simple
+*\copydoc dummy_overload
+*
+*/
+
+/** @class dummy_simple
 *For a test where all necessary setup can be done in the constructor, simply call mytestbed->add("name"); where name is the name the class is registered under. 
 *For a simple setup function, with any number of parameters but no overloads, we bind together the setup function arguments to the values required, and pass that as second argument to add(). Using supplied macros: 
 ADDABLE_FN_TYPE(name) myfun = ADDABLE_FN(name::functionname, 1, "hello"); etc
@@ -230,7 +255,8 @@ and then mytestbed->add("name", myfun)
 Before the test is run, the setup function will be invoked with the arguments given. Multiple calls to add with different arguments may be made, each adding a new test object
 *
 *The macros above expand to std::function<void(test_entity_name *)> myfun = std::bind(&test_entity_name::functionname, std::placeholders::_1, 1, "hello") Note the placeholder for the this argument as we're using a member function. The end result of the binding which is passed to add must be a function taking exactly one parameter, a this pointer for the object specified by "name". 
-*
+
+ @class dummy_overload
 For overloaded setup functions, there is an additional step. std::bind, which underlies the ADDABLE_FN macro, has to be told which overload is required. 
 So we first do void (test_entity_second::*tmpfn)(int) = &test_entity_second::setup_member;
 to create tmpfn with the correct signature, and then bind to the parameters of tmpfn like this myfun = std::bind(tmpfn, std::placeholders::_1, 1); Finally we call add("name", myfun) as before. Macros to build this syntax are used like this:   RESOLVED_FN_TYPE(name, tmpfunctionname)(argument specification) = RESOLVED_FN(name, functionname); myfun = MEMBER_BIND[_NOARG](tmpfunctionname [, arg list]);
