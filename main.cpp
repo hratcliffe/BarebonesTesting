@@ -206,6 +206,8 @@ namespace testbed_example{
 
 void example_testing(testbed::tests * mytestbed){
   testbed::set_filename("testing.log");
+  testbed::set_colour("fail", 'm');
+
   mytestbed->setup_tests();
 
   //Adding simple tests:

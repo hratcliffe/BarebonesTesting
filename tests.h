@@ -177,9 +177,18 @@ namespace testbed{
     /** \brief Set colours used
     *
     * Sets the output colour for given useage to colour. Applies only if terminal supports colour. Functions are: pass, fail, info, normal used to report test passes, test failures, additional info via report_info and the normal mode. Available colours are rgb, cmyk and white.
-    \todo Complete */
-  
-  
+    */
+
+    if(function == "fail"){
+      config::instance()->test_colours.fail = colour;
+    }else if(function == "info"){
+      config::instance()->test_colours.info = colour;
+    }else if(function == "pass"){
+      config::instance()->test_colours.pass = colour;
+    }else if(function == "normal"){
+      config::instance()->test_colours.normal = colour;
+    }else{
+    }
   }
 
   inline void my_print(std::string text, int rank_to_write=0, int rank=config::instance()->mpi_info.rank, bool noreturn=false){
