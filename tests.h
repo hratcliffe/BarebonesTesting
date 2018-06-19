@@ -208,7 +208,6 @@ namespace testbed{
       if(!noreturn) std::cout<<std::endl;
     }
   }
-  void trim_string(std::string &str, char ch=' '); /**< Trim all leading/trailing ch's from str*/
 
   template <typename T> std::string mk_str(T input){
     return std::to_string(input);
@@ -296,7 +295,6 @@ namespace testbed{
     * Create an instance of a test_entity previously registered
     */
       test_entity * instance = nullptr;
-//      for(auto it = this->factoryFunctionRegistry.begin(); it !=this->factoryFunctionRegistry.end(); it++) std::cout<<it->first;
       // find name in the registry and call factory method.
       auto it = this->factoryFunctionRegistry.find(name);
       if(it != this->factoryFunctionRegistry.end())
@@ -316,7 +314,6 @@ namespace testbed{
       Registrar(std::string name)
       {
           // register the class factory function
-//          std::cout<<"here"<<'\n';
           test_factory::instance()->registerFactoryFunction(name,
                   [](void) -> test_entity * { return new T();});
       }
@@ -399,8 +396,6 @@ namespace testbed{
     * Logs error text corresponding to code err for test defined by test_id. Errors are always recorded.*/
     void report_err(TEST_ERR err, int test_id=-1){
       if(test_id == -1) test_id = current_test_id;
-//      if(err ==TEST_PASSED) set_colour('b');
-//      else set_colour('r');
       if(err ==TEST_PASSED) set_colour(config::instance()->test_colours.pass);
       else set_colour(config::instance()->test_colours.fail);
 
@@ -440,7 +435,6 @@ namespace testbed{
         //can't log so return with empty test list
         return;
       }
-      //set_colour(test_colours.normal);
     }
 
     void print_available(){
@@ -488,8 +482,7 @@ namespace testbed{
     }
 
     /** Set the verbosity of testing output, from 0 (minimal) to max_verbos. @see report_info*/
-    void set_verbosity(int verb){if((verb > 0)) this->verbosity = std::max(verb, max_verbos);};
-
+    void set_verbosity(int verb){if((verb > 0)) this->verbosity = std::max(verb, max_verbos);}
 
     /**
      * @class dummy_colour
