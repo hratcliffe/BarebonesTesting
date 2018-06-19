@@ -4,7 +4,7 @@
 //
 //  Created by Heather Ratcliffe on 10/11/2015.
 // Modified 15/6/2016
-//
+// Updated 18/6/2018
 //
 namespace testbed{
 //Doxygen inside namespace to shorten Doxygen name resolution
@@ -114,13 +114,6 @@ namespace testbed{
     char normal;
     
   };
-  /**< \internal Colours for printing according to function*/
-  
-  struct colours test_colours={'R', 'g', 'b', '0'};
-  /**< \internal Default colours */
-
-  mpi_info_struc mpi_info = mpi_info_null;
-  /**< \internal Default MPI struct. This is null, i.e. does not distinguish between processors*/
   
   const int TEST_PASSED = 0;
   const int TEST_WRONG_RESULT = 1;
@@ -139,34 +132,45 @@ namespace testbed{
   const double NUM_PRECISION = 1e-6;/**< Constant for equality at good numerical precision, e.g. from numerical integration over 100-1000 pts*/
   const double LOW_PRECISION = 5e-3;/**< Constant for equality at low precision, i.e. different approximations to an expression*/
   const int max_verbos = 4;
-  std::string filename = "tests.log";/**<Default test log file*/
-  bool hasColour = false;/**< \internal Flag for terminal colour use*/
-
 
   typedef int TEST_ERR;/**< Type for error codes*/
   typedef const int USER_ERR; /**<Special type for defining a new error code */
 
-  int last_err = 6;
-
   const int err_codes[max_err] ={TEST_PASSED, TEST_WRONG_RESULT, TEST_NULL_RESULT, TEST_ASSERT_FAIL, TEST_OTHER, TEST_USER_FAILED, TEST_USERDEF_ERR1, TEST_USERDEF_ERR2, TEST_USERDEF_ERR3, TEST_USERDEF_ERR4};/**< List of error codes available*/
 
-  std::string err_names[max_err]={"None", "Wrong result", "Invalid Null result", "Assignment or assertion failed", "Other error", "Failed to allocate errorcode", "", "", "", ""};/**< Names corresponding to error codes, which are reported in log files*/
+  class config{
+    public:
+      /**< \internal Colours for printing according to function*/
+      
+      struct colours test_colours={'R', 'g', 'b', '0'};
+      /**< \internal Default colours */
+
+      mpi_info_struc mpi_info = mpi_info_null;
+      /**< \internal Default MPI struct. This is null, i.e. does not distinguish between processors*/
+      
+      std::string filename = "tests.log";/**<Default test log file*/
+      bool hasColour = false;/**< \internal Flag for terminal colour use*/
+      int last_err = 6;
+      std::string err_names[max_err]={"None", "Wrong result", "Invalid Null result", "Assignment or assertion failed", "Other error", "Failed to allocate errorcode", "", "", "", ""};/**< Names corresponding to error codes, which are reported in log files*/
+      static config * instance(){static config inst; return &inst;};
+  };
+
   
-  const USER_ERR add_err(const std::string text){
+  inline USER_ERR add_err(const std::string text){
     /** \brief Add a user-defined error message
     *
     *Adds an error message to the defined set. There is a limited number (currently 4) of additional codes. @param text The printable message associated with this error @return The new error code, or if the maximum has been reached, a TEST_USER_FAILED error.
     */
-    if(last_err >= max_err-1) return TEST_USER_FAILED;
-    err_names[last_err] = text;
-    last_err ++;
-    return err_codes[last_err - 1];
+    if(config::instance()->last_err >= max_err-1) return TEST_USER_FAILED;
+    config::instance()->err_names[config::instance()->last_err] = text;
+    config::instance()->last_err ++;
+    return err_codes[config::instance()->last_err - 1];
   };
   
   
 
-  inline void set_filename(std::string name){filename = name;}/**< Set the output filename. Default value is "tests.log". */
-  inline void set_mpi(mpi_info_struc mpi_info_in){mpi_info=mpi_info_in;}
+  inline void set_filename(std::string name){config::instance()->filename = name;}/**< Set the output filename. Default value is "tests.log". */
+  inline void set_mpi(mpi_info_struc mpi_info_in){config::instance()->mpi_info=mpi_info_in;}
   /**< \brief Setup MPI
   *
   * Logging and print functions by default print only on the 0 ranked processor. Use this function to set the mpi_info for each processor. A testbed::mpi_info_struc has two fields, n_procs for the total number of processors, and rank, for each processor's rank.
@@ -182,7 +186,7 @@ namespace testbed{
   };
 
 
-  inline void my_print(std::string text, int rank_to_write=0, int rank=mpi_info.rank, bool noreturn=false){
+  inline void my_print(std::string text, int rank_to_write=0, int rank=config::instance()->mpi_info.rank, bool noreturn=false){
   /** \brief Write output
   *
   *MPI aware writing routine. Writes string text to stdout, only from processor with rank equal rank_to_write. This defaults to 0. If mpi_info has not been set, via set_mpi, ALL processors will print, in unspecified order.
@@ -194,7 +198,7 @@ namespace testbed{
     }
 
   }
-  inline void my_print(std::fstream * handle, std::string text, int rank_to_write=0, int rank=mpi_info.rank, bool noreturn=false){
+  inline void my_print(std::fstream * handle, std::string text, int rank_to_write=0, int rank=config::instance()->mpi_info.rank, bool noreturn=false){
   /** \brief Write output
   *
   *MPI aware writing routine. Writes string text to given file, only from processor with rank equal rank_to_write. This defaults to 0. If mpi_info has not been set, via set_mpi, ALL processors will print, in unspecified order.
@@ -246,7 +250,7 @@ namespace testbed{
     std::string term_env;
 
     if(getenv("TERM")!=NULL) term_env = getenv("TERM");
-    if(term_env == "xterm-256color" || "xterm-8color") hasColour = true;
+    if(term_env == "xterm-256color" || "xterm-8color") config::instance()->hasColour = true;
 
   }
 
@@ -287,12 +291,17 @@ namespace testbed{
     std::shared_ptr<test_entity> create(std::string name);
 
   };
-  test_factory * test_factory::instance(){
+  inline test_factory * test_factory::instance(){
+    /** \internal Return the factory singleton instance*/
     static test_factory factory;
     return &factory;
   }
 
-  std::shared_ptr<test_entity> test_factory::create(std::string name){
+  inline std::shared_ptr<test_entity> test_factory::create(std::string name){
+    /** \internal \brief Create test_entity
+    *
+    * Create an instance of a test_entity previously registered
+    */
       test_entity * instance = nullptr;
 //      for(auto it = this->factoryFunctionRegistry.begin(); it !=this->factoryFunctionRegistry.end(); it++) std::cout<<it->first;
       // find name in the registry and call factory method.
@@ -346,7 +355,7 @@ namespace testbed{
         for(int i=max_err-1; i>0; --i){
           //Run most to least significant
           if((err & err_codes[i]) == err_codes[i]){
-            err_string +=err_names[i] + ", ";
+            err_string +=config::instance()->err_names[i] + ", ";
           }
         }
         err_string = "Error "+err_string+"(code "+mk_str(err)+") on";
@@ -386,11 +395,11 @@ namespace testbed{
       if(test_id == -1) test_id = current_test_id;
 //      if(err ==TEST_PASSED) set_colour('b');
 //      else set_colour('r');
-      if(err ==TEST_PASSED) set_colour(test_colours.pass);
-      else set_colour(test_colours.fail);
+      if(err ==TEST_PASSED) set_colour(config::instance()->test_colours.pass);
+      else set_colour(config::instance()->test_colours.fail);
 
-      my_print(outfile, get_printable_error(err, test_id), 0, mpi_info.rank);
-      my_print(nullptr, get_printable_error(err, test_id), 0, mpi_info.rank);
+      my_print(outfile, get_printable_error(err, test_id), 0, config::instance()->mpi_info.rank);
+      my_print(nullptr, get_printable_error(err, test_id), 0, config::instance()->mpi_info.rank);
       set_colour();
   }
 
@@ -399,11 +408,11 @@ namespace testbed{
     *Records string info to the tests.log file and to screen, according to requested verbosity. @param info The text to report @param verb_to_print verbosity level at which to print this info @param test_id
     */
     void report_info(std::string info, int verb_to_print = 1, int test_id=-1){
-      set_colour(test_colours.info);
+      set_colour(config::instance()->test_colours.info);
       if(test_id == -1) test_id = current_test_id;
       if(verb_to_print <= this->verbosity){
-        my_print(outfile, info, 0, mpi_info.rank);
-        my_print(nullptr, info, 0, mpi_info.rank);
+        my_print(outfile, info, 0, config::instance()->mpi_info.rank);
+        my_print(nullptr, info, 0, config::instance()->mpi_info.rank);
       }
       set_colour();
   };
@@ -419,9 +428,9 @@ namespace testbed{
       *Opens reporting file.
       */
       outfile = new std::fstream();
-      outfile->open(filename.c_str(), std::ios::out);
+      outfile->open(config::instance()->filename.c_str(), std::ios::out);
       if(!outfile->is_open()){
-        my_print("Error opening "+filename, 0, mpi_info.rank);
+        my_print("Error opening "+config::instance()->filename, 0, config::instance()->mpi_info.rank);
         //can't log so return with empty test list
         return;
       }
@@ -442,12 +451,12 @@ namespace testbed{
 
     /** Delete test objects */
     void cleanup_tests(){
-      if(outfile->is_open()){
-        my_print("Testing complete and logged in " +filename, 0, mpi_info.rank);
+      if(outfile && outfile->is_open()){
+        my_print("Testing complete and logged in " +config::instance()->filename, 0, config::instance()->mpi_info.rank);
         outfile->close();
       }else{
-        set_colour(test_colours.fail);
-        my_print("No logfile generated", 0, mpi_info.rank);
+        set_colour(config::instance()->test_colours.fail);
+        my_print("No logfile generated", 0, config::instance()->mpi_info.rank);
         set_colour();
       }
       delete outfile;
@@ -465,15 +474,15 @@ namespace testbed{
         //Add one if is any error returned
       }
       if(total_errs > 0){
-        set_colour(test_colours.fail);
+        set_colour(config::instance()->test_colours.fail);
         my_print("\xe2\x9c\x97 ", true);
         set_colour('*');
-        my_print(mk_str(total_errs)+" failed tests", mpi_info.rank);
+        my_print(mk_str(total_errs)+" failed tests", config::instance()->mpi_info.rank);
       }else{
-        set_colour(test_colours.normal);
+        set_colour(config::instance()->test_colours.normal);
         my_print("\xe2\x9c\x93 ", true);
         set_colour('*');
-        my_print("All tests passed", mpi_info.rank);
+        my_print("All tests passed", config::instance()->mpi_info.rank);
       }
       this->set_colour();
 
@@ -491,7 +500,7 @@ namespace testbed{
     /** \brief Set output text colour/style
     *
     * \copydoc dummy_colour    */
-    void set_colour(char col=0){my_print(this->get_color_escape(col), mpi_info.rank, 0, true);};
+    void set_colour(char col=0){my_print(this->get_color_escape(col), config::instance()->mpi_info.rank, 0, true);};
 
     std::string get_color_escape(char col=0);
     
@@ -508,7 +517,7 @@ namespace testbed{
   /** \brief
   *\copydoc dummy_colour This returns the terminal escape string to set given colour.
   */
-    if(!hasColour) return "";
+    if(!config::instance()->hasColour) return "";
     if(col >='A' and col <='Z') col += 32;
     //ASCII upper to lower
     switch (col) {
