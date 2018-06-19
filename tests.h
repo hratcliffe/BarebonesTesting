@@ -152,10 +152,9 @@ namespace testbed{
       bool hasColour = false;/**< \internal Flag for terminal colour use*/
       int last_err = 6;
       std::string err_names[max_err]={"None", "Wrong result", "Invalid Null result", "Assignment or assertion failed", "Other error", "Failed to allocate errorcode", "", "", "", ""};/**< Names corresponding to error codes, which are reported in log files*/
-      static config * instance(){static config inst; return &inst;};
+      static config * instance(){static config inst; return &inst;}
   };
 
-  
   inline USER_ERR add_err(const std::string text){
     /** \brief Add a user-defined error message
     *
@@ -165,10 +164,8 @@ namespace testbed{
     config::instance()->err_names[config::instance()->last_err] = text;
     config::instance()->last_err ++;
     return err_codes[config::instance()->last_err - 1];
-  };
+  }
   
-  
-
   inline void set_filename(std::string name){config::instance()->filename = name;}/**< Set the output filename. Default value is "tests.log". */
   inline void set_mpi(mpi_info_struc mpi_info_in){config::instance()->mpi_info=mpi_info_in;}
   /**< \brief Setup MPI
@@ -183,8 +180,7 @@ namespace testbed{
     \todo Complete */
   
   
-  };
-
+  }
 
   inline void my_print(std::string text, int rank_to_write=0, int rank=config::instance()->mpi_info.rank, bool noreturn=false){
   /** \brief Write output
@@ -210,10 +206,7 @@ namespace testbed{
     }else if(rank == rank_to_write || rank_to_write == -1){
       std::cout<<text;
       if(!noreturn) std::cout<<std::endl;
-
-
     }
-
   }
   void trim_string(std::string &str, char ch=' '); /**< Trim all leading/trailing ch's from str*/
 
@@ -237,8 +230,8 @@ namespace testbed{
     else return "0";
 
   }
-  inline std::string mk_str(long double i, bool noexp){return mk_str((double) i, noexp);};
-  inline std::string mk_str(float i, bool noexp){return mk_str((double) i, noexp);};
+  inline std::string mk_str(long double i, bool noexp){return mk_str((double) i, noexp);}
+  inline std::string mk_str(float i, bool noexp){return mk_str((double) i, noexp);}
   /* Some overloads to mk_str for non-scientific output, and for bool type*/
 
 
@@ -414,7 +407,7 @@ namespace testbed{
       my_print(outfile, get_printable_error(err, test_id), 0, config::instance()->mpi_info.rank);
       my_print(nullptr, get_printable_error(err, test_id), 0, config::instance()->mpi_info.rank);
       set_colour();
-  }
+    }
 
     /** \brief Log other test info
     *
@@ -428,13 +421,13 @@ namespace testbed{
         my_print(nullptr, info, 0, config::instance()->mpi_info.rank);
       }
       set_colour();
-  };
+    }
 
     tests(){
       this->verbosity = max_verbos;
       check_term();
-    };
-    ~tests(){cleanup_tests();};
+    }
+    ~tests(){cleanup_tests();}
     void setup_tests(){
       /** \brief Setup test bed
       *
@@ -454,7 +447,6 @@ namespace testbed{
     /** Print names of all registered tests */
       auto registry = testbed::test_factory::instance()->factoryFunctionRegistry;
           for(auto it = registry.begin(); it !=registry.end(); it++) std::cout<<it->first<<'\n';
-    
     }
 
     /** Delete test objects */
@@ -469,7 +461,7 @@ namespace testbed{
       }
       delete outfile;
       test_list.clear();
-    };
+    }
 
     /** \brief Run scheduled tests
     *
@@ -493,8 +485,7 @@ namespace testbed{
         my_print("All tests passed", config::instance()->mpi_info.rank);
       }
       this->set_colour();
-
-    };
+    }
 
     /** Set the verbosity of testing output, from 0 (minimal) to max_verbos. @see report_info*/
     void set_verbosity(int verb){if((verb > 0)) this->verbosity = std::max(verb, max_verbos);};
@@ -515,9 +506,9 @@ namespace testbed{
   };
 
   /** \copydoc tests::report_info */
-  inline void test_entity::report_info(std::string info, int verb_to_print){parent->report_info(info, verb_to_print);};
+  inline void test_entity::report_info(std::string info, int verb_to_print){parent->report_info(info, verb_to_print);}
   /** \copydoc tests::report_err */
-  inline void test_entity::report_err(int err){parent->report_err(err);};
+  inline void test_entity::report_err(int err){parent->report_err(err);}
 
 
   //Break this out because it's giant case
@@ -580,6 +571,6 @@ namespace testbed{
 
   }
 
-};
+}
 
 #endif
